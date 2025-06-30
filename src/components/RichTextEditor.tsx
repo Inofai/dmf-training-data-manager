@@ -1,9 +1,11 @@
 
 import { useState, useRef, useEffect } from "react";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { FileText, Send, Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight } from "lucide-react";
+import { FileText } from "lucide-react";
+import RichTextToolbar from "./RichTextToolbar";
+import RichTextEditorContent from "./RichTextEditorContent";
+import RichTextSubmissionControls from "./RichTextSubmissionControls";
 import "./RichTextEditor.css";
 
 const RichTextEditor = () => {
@@ -134,132 +136,28 @@ const RichTextEditor = () => {
               Document Editor
             </CardTitle>
             
-            {/* Functional Toolbar */}
-            <div className="flex items-center gap-2 pt-4 border-t border-gray-100">
-              {/* Text Formatting */}
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 w-8 p-0"
-                type="button"
-                onClick={() => executeCommand('bold')}
-              >
-                <Bold className="w-4 h-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 w-8 p-0"
-                type="button"
-                onClick={() => executeCommand('italic')}
-              >
-                <Italic className="w-4 h-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 w-8 p-0"
-                type="button"
-                onClick={() => executeCommand('underline')}
-              >
-                <Underline className="w-4 h-4" />
-              </Button>
-              
-              <div className="h-6 w-px bg-gray-300 mx-2" />
-              
-              {/* Text Alignment */}
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 w-8 p-0"
-                type="button"
-                onClick={() => handleAlignment('left')}
-              >
-                <AlignLeft className="w-4 h-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 w-8 p-0"
-                type="button"
-                onClick={() => handleAlignment('center')}
-              >
-                <AlignCenter className="w-4 h-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 w-8 p-0"
-                type="button"
-                onClick={() => handleAlignment('right')}
-              >
-                <AlignRight className="w-4 h-4" />
-              </Button>
-              
-              <div className="h-6 w-px bg-gray-300 mx-2" />
-              
-              {/* Text Direction */}
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 px-3"
-                type="button"
-                onClick={toggleTextDirection}
-              >
-                {textDirection === 'ltr' ? 'LTR' : 'RTL'}
-              </Button>
-              
-              <div className="h-6 w-px bg-gray-300 mx-2" />
-              
-              <span className="text-sm text-gray-500">
-                {getCharacterCount()} characters
-              </span>
-            </div>
+            <RichTextToolbar
+              textDirection={textDirection}
+              characterCount={getCharacterCount()}
+              onExecuteCommand={executeCommand}
+              onHandleAlignment={handleAlignment}
+              onToggleTextDirection={toggleTextDirection}
+            />
           </CardHeader>
 
           <CardContent className="p-0">
-            <div className="p-6">
-              <div
-                ref={editorRef}
-                contentEditable
-                onInput={handleInput}
-                onPaste={handlePaste}
-                className="min-h-[400px] border-0 outline-none text-base leading-relaxed p-4 rounded-md border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                style={{
-                  fontFamily: "system-ui, -apple-system, sans-serif",
-                  fontSize: "16px",
-                  lineHeight: "1.6",
-                  direction: textDirection,
-                }}
-                data-placeholder="Start typing your document here... You can paste formatted content from other applications."
-                suppressContentEditableWarning={true}
-              />
-            </div>
+            <RichTextEditorContent
+              editorRef={editorRef}
+              textDirection={textDirection}
+              onInput={handleInput}
+              onPaste={handlePaste}
+            />
 
-            <div className="border-t border-gray-200 p-6 bg-gray-50">
-              <div className="flex justify-between items-center">
-                <div className="text-sm text-gray-500">
-                  Auto-saved • Last saved just now
-                </div>
-                <Button
-                  onClick={handleSubmit}
-                  disabled={isSubmitting || getCharacterCount() === 0}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-6"
-                >
-                  {isSubmitting ? (
-                    <div className="flex items-center space-x-2">
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span>Submitting...</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center space-x-2">
-                      <Send className="w-4 h-4" />
-                      <span>Submit Document</span>
-                    </div>
-                  )}
-                </Button>
-              </div>
-            </div>
+            <RichTextSubmissionControls
+              isSubmitting={isSubmitting}
+              characterCount={getCharacterCount()}
+              onSubmit={handleSubmit}
+            />
           </CardContent>
         </Card>
       </div>
