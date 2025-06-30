@@ -33,11 +33,28 @@ const ApiKeyTable = ({ apiKeys, onApiKeyDeleted }: ApiKeyTableProps) => {
   const { toast } = useToast();
 
   const handleDeleteApiKey = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this API key?")) {
+    if (!confirm("Are you sure you want to delete this API key? This will also delete all usage history for this key.")) {
       return;
     }
 
     try {
+      // First delete all usage records for this API key
+      const { error: usageDeleteError } = await supabase
+        .from('api_key_usage')
+        .delete()
+        .eq('api_key_id', id);
+
+      if (usageDeleteError) {
+        console.error('Error deleting API key usage:', usageDeleteError);
+        toast({
+          title: "Error",
+          description: "Failed to delete API key usage records.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Now delete the API key itself
       const { error } = await supabase
         .from('api_keys')
         .delete()
