@@ -9,6 +9,41 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      api_key_usage: {
+        Row: {
+          api_key_id: string
+          endpoint: string | null
+          error_message: string | null
+          id: string
+          success: boolean | null
+          used_at: string | null
+        }
+        Insert: {
+          api_key_id: string
+          endpoint?: string | null
+          error_message?: string | null
+          id?: string
+          success?: boolean | null
+          used_at?: string | null
+        }
+        Update: {
+          api_key_id?: string
+          endpoint?: string | null
+          error_message?: string | null
+          id?: string
+          success?: boolean | null
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_key_usage_api_key_id_fkey"
+            columns: ["api_key_id"]
+            isOneToOne: false
+            referencedRelation: "api_keys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       api_keys: {
         Row: {
           created_at: string | null
@@ -133,12 +168,25 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_api_key_by_name: {
+        Args: { _key_name: string }
+        Returns: string
+      }
       has_role: {
         Args: {
           _user_id: string
           _role: Database["public"]["Enums"]["app_role"]
         }
         Returns: boolean
+      }
+      log_api_key_usage: {
+        Args: {
+          _key_name: string
+          _endpoint: string
+          _success?: boolean
+          _error_message?: string
+        }
+        Returns: undefined
       }
     }
     Enums: {

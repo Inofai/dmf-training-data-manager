@@ -17,11 +17,6 @@ serve(async (req) => {
     const { content } = await req.json();
     console.log('Processing content:', content.substring(0, 100) + '...');
 
-    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-    if (!openAIApiKey) {
-      throw new Error('OpenAI API key not found');
-    }
-
     // Create Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -38,61 +33,112 @@ serve(async (req) => {
 
     console.log('Processing content for user:', user.id);
 
-    // Call OpenAI to extract structured data
-    const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [
-          {
-            role: 'system',
-            content: `You are an expert at extracting training data from documents. 
-            
-            Given a document, extract:
-            1. A descriptive title for the document
-            2. Any source links mentioned in the document (as an array)
-            3. Question-answer pairs that would be useful for training an AI model
-            
-            Return your response as a JSON object with this exact structure:
-            {
-              "title": "Document title here",
-              "source_links": ["url1", "url2"],
-              "qa_pairs": [
-                {
-                  "question": "Question here?",
-                  "answer": "Answer here"
-                }
-              ]
-            }
-            
-            Make sure to:
-            - Generate multiple relevant question-answer pairs
-            - Extract all URLs mentioned in the document
-            - Create a concise but descriptive title
-            - Ensure questions are clear and answers are comprehensive`
-          },
-          {
-            role: 'user',
-            content: `Please extract training data from this document:\n\n${content}`
-          }
-        ],
-        temperature: 0.1,
-      }),
+    // Get OpenAI API key from database
+    const { data: openAIApiKey, error: keyError } = await supabase.rpc('get_api_key_by_name', {
+      _key_name: 'OPENAI_API_KEY'
     });
+
+    if (keyError) {
+      console.error('Error fetching API key:', keyError);
+      throw new Error('Failed to retrieve API key from database');
+    }
+
+    if (!openAIApiKey) {
+      console.error('OpenAI API key not found in database');
+      throw new Error('OpenAI API key not configured. Please add it in the API Keys management page.');
+    }
+
+    console.log('Retrieved OpenAI API key from database');
+
+    // Call OpenAI to extract structured data
+    let openAIResponse;
+    let openAIError = null;
+    
+    try {
+      openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openAIApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          messages: [
+            {
+              role: 'system',
+              content: `You are an expert at extracting training data from documents. 
+              
+              Given a document, extract:
+              1. A descriptive title for the document
+              2. Any source links mentioned in the document (as an array)
+              3. Question-answer pairs that would be useful for training an AI model
+              
+              Return your response as a JSON object with this exact structure:
+              {
+                "title": "Document title here",
+                "source_links": ["url1", "url2"],
+                "qa_pairs": [
+                  {
+                    "question": "Question here?",
+                    "answer": "Answer here"
+                  }
+                ]
+              }
+              
+              Make sure to:
+              - Generate multiple relevant question-answer pairs
+              - Extract all URLs mentioned in the document
+              - Create a concise but descriptive title
+              - Ensure questions are clear and answers are comprehensive`
+            },
+            {
+              role: 'user',
+              content: `Please extract training data from this document:\n\n${content}`
+            }
+          ],
+          temperature: 0.1,
+        }),
+      });
+
+      // Log API usage - success case
+      await supabase.rpc('log_api_key_usage', {
+        _key_name: 'OPENAI_API_KEY',
+        _endpoint: 'chat/completions',
+        _success: openAIResponse.ok
+      });
+
+    } catch (fetchError) {
+      console.error('OpenAI API fetch error:', fetchError);
+      openAIError = fetchError.message;
+      
+      // Log API usage - error case
+      await supabase.rpc('log_api_key_usage', {
+        _key_name: 'OPENAI_API_KEY',
+        _endpoint: 'chat/completions',
+        _success: false,
+        _error_message: fetchError.message
+      });
+      
+      throw fetchError;
+    }
 
     if (!openAIResponse.ok) {
       const errorText = await openAIResponse.text();
       console.error('OpenAI API error:', errorText);
       
+      // Log API usage - API error case
+      await supabase.rpc('log_api_key_usage', {
+        _key_name: 'OPENAI_API_KEY',
+        _endpoint: 'chat/completions',
+        _success: false,
+        _error_message: `HTTP ${openAIResponse.status}: ${errorText}`
+      });
+      
       // Handle specific error types
       if (openAIResponse.status === 429) {
         throw new Error('OpenAI quota exceeded. Please check your OpenAI billing and usage limits at https://platform.openai.com/account/billing');
       } else if (openAIResponse.status === 401) {
-        throw new Error('Invalid OpenAI API key. Please check your API key configuration.');
+        throw new Error('Invalid OpenAI API key. Please check your API key configuration in the API Keys management page.');
       } else {
         throw new Error(`OpenAI API error (${openAIResponse.status}): ${errorText}`);
       }
