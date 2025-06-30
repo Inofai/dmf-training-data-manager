@@ -33,10 +33,8 @@ serve(async (req) => {
 
     console.log('Processing content for user:', user.id);
 
-    // Get OpenAI API key from database
-    const { data: openAIApiKey, error: keyError } = await supabase.rpc('get_api_key_by_name', {
-      _key_name: 'OPENAI_API_KEY'
-    });
+    // Get OpenAI API key from database using get_api_key function
+    const { data: openAIApiKey, error: keyError } = await supabase.rpc('get_api_key');
 
     if (keyError) {
       console.error('Error fetching API key:', keyError);
@@ -100,39 +98,15 @@ serve(async (req) => {
         }),
       });
 
-      // Log API usage - success case
-      await supabase.rpc('log_api_key_usage', {
-        _key_name: 'OPENAI_API_KEY',
-        _endpoint: 'chat/completions',
-        _success: openAIResponse.ok
-      });
-
     } catch (fetchError) {
       console.error('OpenAI API fetch error:', fetchError);
       openAIError = fetchError.message;
-      
-      // Log API usage - error case
-      await supabase.rpc('log_api_key_usage', {
-        _key_name: 'OPENAI_API_KEY',
-        _endpoint: 'chat/completions',
-        _success: false,
-        _error_message: fetchError.message
-      });
-      
       throw fetchError;
     }
 
     if (!openAIResponse.ok) {
       const errorText = await openAIResponse.text();
       console.error('OpenAI API error:', errorText);
-      
-      // Log API usage - API error case
-      await supabase.rpc('log_api_key_usage', {
-        _key_name: 'OPENAI_API_KEY',
-        _endpoint: 'chat/completions',
-        _success: false,
-        _error_message: `HTTP ${openAIResponse.status}: ${errorText}`
-      });
       
       // Handle specific error types
       if (openAIResponse.status === 429) {
