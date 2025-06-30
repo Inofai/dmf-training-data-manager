@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import Navigation from "@/components/Navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,11 +25,12 @@ interface DocumentData {
 }
 
 const DocumentVerification = () => {
+  const { user, loading } = useAuth();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [documentData, setDocumentData] = useState<DocumentData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [docLoading, setDocLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [editedTitle, setEditedTitle] = useState("");
   const [editedQAPairs, setEditedQAPairs] = useState<QAPair[]>([]);
@@ -39,6 +42,11 @@ const DocumentVerification = () => {
   const sourceLinks = searchParams.get('source_links');
 
   useEffect(() => {
+    if (!loading && !user) {
+      navigate("/");
+      return;
+    }
+
     if (documentId && title && qaCount) {
       // Get data from URL parameters first
       const initialData: DocumentData = {
@@ -62,7 +70,7 @@ const DocumentVerification = () => {
       });
       navigate("/editor");
     }
-  }, [documentId, title, qaCount, sourceLinks]);
+  }, [documentId, title, qaCount, sourceLinks, user, loading, navigate]);
 
   const fetchQAPairs = async (docId: string) => {
     try {
@@ -88,7 +96,7 @@ const DocumentVerification = () => {
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      setDocLoading(false);
     }
   };
 
@@ -174,10 +182,27 @@ const DocumentVerification = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-100 p-4">
-        <div className="max-w-4xl mx-auto">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-2 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
+
+  if (docLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-100">
+        <Navigation />
+        <div className="max-w-4xl mx-auto p-4">
           <div className="text-center">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Loading...</h1>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading document...</p>
           </div>
         </div>
       </div>
@@ -186,8 +211,9 @@ const DocumentVerification = () => {
 
   if (!documentData) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-100 p-4">
-        <div className="max-w-4xl mx-auto">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-100">
+        <Navigation />
+        <div className="max-w-4xl mx-auto p-4">
           <div className="text-center">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Document Not Found</h1>
             <Button onClick={() => navigate("/editor")}>Return to Editor</Button>
@@ -198,8 +224,10 @@ const DocumentVerification = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-100 p-4">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-100">
+      <Navigation />
+      
+      <div className="max-w-4xl mx-auto p-4">
         <div className="mb-6">
           <Button
             variant="ghost"

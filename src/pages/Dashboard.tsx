@@ -1,5 +1,7 @@
-
 import { useEffect, useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
+import Navigation from "@/components/Navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -17,7 +19,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useNavigate } from "react-router-dom";
 import { FileText, MessageSquare, Link as LinkIcon, Trash2 } from "lucide-react";
 
 interface TrainingDocument {
@@ -30,27 +31,22 @@ interface TrainingDocument {
 }
 
 const Dashboard = () => {
-  const [documents, setDocuments] = useState<TrainingDocument[]>([]);
-  const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const [documents, setDocuments] = useState<TrainingDocument[]>([]);
+  const [documentsLoading, setDocumentsLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
-    fetchDocuments();
-  }, []);
+    if (!loading && !user) {
+      navigate("/");
+    } else if (user) {
+      fetchDocuments();
+    }
+  }, [user, loading, navigate]);
 
   const fetchDocuments = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast({
-          title: "Authentication Required",
-          description: "Please sign in to view your documents.",
-          variant: "destructive",
-        });
-        return;
-      }
-
       const { data, error } = await supabase
         .from('training_documents')
         .select(`
@@ -81,7 +77,7 @@ const Dashboard = () => {
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      setDocumentsLoading(false);
     }
   };
 
@@ -149,19 +145,24 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-100 p-4">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Loading...</h1>
-          </div>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-2 text-gray-600">Loading...</p>
         </div>
       </div>
     );
   }
 
+  if (!user) {
+    return null;
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-100 p-4">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-100">
+      <Navigation />
+      
+      <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="text-center mb-6">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Training Data Dashboard</h1>
           <p className="text-gray-600">View and manage your processed training documents</p>
@@ -175,7 +176,12 @@ const Dashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {documents.length === 0 ? (
+            {documentsLoading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading documents...</p>
+              </div>
+            ) : documents.length === 0 ? (
               <div className="text-center py-8">
                 <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No documents yet</h3>
