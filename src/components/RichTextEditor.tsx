@@ -142,6 +142,7 @@ const RichTextEditor = () => {
               onExecuteCommand={executeCommand}
               onHandleAlignment={handleAlignment}
               onToggleTextDirection={toggleTextDirection}
+              editorRef={editorRef}
             />
           </CardHeader>
 
