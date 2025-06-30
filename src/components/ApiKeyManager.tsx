@@ -3,6 +3,8 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Info } from "lucide-react";
 import ApiKeyAddDialog from "./ApiKeyAddDialog";
 import ApiKeyTable from "./ApiKeyTable";
 
@@ -13,6 +15,7 @@ interface ApiKey {
   description: string | null;
   created_at: string;
   is_active: boolean;
+  is_default?: boolean;
 }
 
 const ApiKeyManager = () => {
@@ -29,6 +32,7 @@ const ApiKeyManager = () => {
       const { data, error } = await supabase
         .from('api_keys')
         .select('*')
+        .eq('name', 'OPENAI_API_KEY')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -54,14 +58,24 @@ const ApiKeyManager = () => {
     );
   }
 
+  const hasApiKey = apiKeys.length > 0;
+
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>API Keys</CardTitle>
+          <CardTitle>OpenAI API Key</CardTitle>
           <ApiKeyAddDialog onApiKeyAdded={fetchApiKeys} />
         </CardHeader>
         <CardContent>
+          {!hasApiKey && (
+            <Alert className="mb-4">
+              <Info className="h-4 w-4" />
+              <AlertDescription>
+                No OpenAI API key configured. Add your OpenAI API key to enable content processing features.
+              </AlertDescription>
+            </Alert>
+          )}
           <ApiKeyTable apiKeys={apiKeys} onApiKeyDeleted={fetchApiKeys} />
         </CardContent>
       </Card>

@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -21,11 +21,31 @@ interface ApiKeyAddDialogProps {
 
 const ApiKeyAddDialog = ({ onApiKeyAdded }: ApiKeyAddDialogProps) => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [hasExistingKey, setHasExistingKey] = useState(false);
   const [newKey, setNewKey] = useState({
     key_value: "",
     description: ""
   });
   const { toast } = useToast();
+
+  useEffect(() => {
+    checkExistingKey();
+  }, []);
+
+  const checkExistingKey = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('api_keys')
+        .select('id')
+        .eq('name', 'OPENAI_API_KEY')
+        .limit(1);
+
+      if (error) throw error;
+      setHasExistingKey(data && data.length > 0);
+    } catch (error) {
+      console.error('Error checking existing key:', error);
+    }
+  };
 
   const handleAddApiKey = async () => {
     if (!newKey.key_value.trim()) {
@@ -41,21 +61,23 @@ const ApiKeyAddDialog = ({ onApiKeyAdded }: ApiKeyAddDialogProps) => {
       const { error } = await supabase
         .from('api_keys')
         .insert({
-          name: `API Key ${Date.now()}`, // Auto-generate a name
+          name: 'OPENAI_API_KEY',
           key_value: newKey.key_value.trim(),
           description: newKey.description.trim() || null,
-          created_by: (await supabase.auth.getUser()).data.user?.id
+          created_by: (await supabase.auth.getUser()).data.user?.id,
+          is_default: true
         });
 
       if (error) throw error;
 
       toast({
         title: "Success",
-        description: "API key added successfully.",
+        description: "OpenAI API key added successfully.",
       });
 
       setNewKey({ key_value: "", description: "" });
       setIsAddDialogOpen(false);
+      setHasExistingKey(true);
       onApiKeyAdded();
     } catch (error) {
       console.error('Error adding API key:', error);
@@ -67,19 +89,28 @@ const ApiKeyAddDialog = ({ onApiKeyAdded }: ApiKeyAddDialogProps) => {
     }
   };
 
+  if (hasExistingKey) {
+    return null; // Don't show the add button if key already exists
+  }
+
   return (
     <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
       <DialogTrigger asChild>
         <Button className="flex items-center gap-2">
           <Plus className="w-4 h-4" />
-          Add API Key
+          Add OpenAI API Key
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add New API Key</DialogTitle>
+          <DialogTitle>Add OpenAI API Key</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
+          <div className="p-3 bg-blue-50 border border-blue-200 rounded">
+            <p className="text-sm text-blue-800">
+              <strong>Name:</strong> OPENAI_API_KEY (fixed)
+            </p>
+          </div>
           <div>
             <Label htmlFor="key_value">API Key Value *</Label>
             <Input
@@ -87,7 +118,7 @@ const ApiKeyAddDialog = ({ onApiKeyAdded }: ApiKeyAddDialogProps) => {
               type="password"
               value={newKey.key_value}
               onChange={(e) => setNewKey({ ...newKey, key_value: e.target.value })}
-              placeholder="Enter API key value"
+              placeholder="Enter your OpenAI API key"
             />
           </div>
           <div>

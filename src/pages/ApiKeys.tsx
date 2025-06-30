@@ -62,12 +62,12 @@ const ApiKeys = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-2xl text-blue-700">
               <Key className="w-6 h-6" />
-              API Key Management
+              OpenAI API Key Management
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-gray-600">
-              Manage API keys for your application. Add, view, and delete API keys as needed.
+              Manage your OpenAI API key for content processing. Only one API key with the name "OPENAI_API_KEY" is allowed.
               Only administrators can access this functionality.
             </p>
           </CardContent>
