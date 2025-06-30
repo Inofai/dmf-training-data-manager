@@ -8,6 +8,8 @@ import Index from "./pages/Index";
 import Editor from "./pages/Editor";
 import Dashboard from "./pages/Dashboard";
 import ApiKeys from "./pages/ApiKeys";
+import UserManager from "./pages/UserManager";
+import ApisManager from "./pages/ApisManager";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -23,6 +25,8 @@ const App = () => (
           <Route path="/editor" element={<Editor />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/api-keys" element={<ApiKeys />} />
+          <Route path="/user-manager" element={<UserManager />} />
+          <Route path="/apis-manager" element={<ApisManager />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

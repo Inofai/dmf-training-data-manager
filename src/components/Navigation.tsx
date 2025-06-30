@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { BarChart3, LogOut, Edit, Crown, Key } from "lucide-react";
+import { BarChart3, LogOut, Edit, Crown, Key, Users, Settings } from "lucide-react";
 
 const Navigation = () => {
   const navigate = useNavigate();
@@ -65,14 +65,34 @@ const Navigation = () => {
             </Button>
             
             {isAdmin && (
-              <Button
-                variant="ghost"
-                onClick={() => navigate("/api-keys")}
-                className="flex items-center gap-2"
-              >
-                <Key className="w-4 h-4" />
-                API Keys
-              </Button>
+              <>
+                <Button
+                  variant="ghost"
+                  onClick={() => navigate("/user-manager")}
+                  className="flex items-center gap-2"
+                >
+                  <Users className="w-4 h-4" />
+                  Users
+                </Button>
+                
+                <Button
+                  variant="ghost"
+                  onClick={() => navigate("/api-keys")}
+                  className="flex items-center gap-2"
+                >
+                  <Key className="w-4 h-4" />
+                  API Keys
+                </Button>
+                
+                <Button
+                  variant="ghost"
+                  onClick={() => navigate("/apis-manager")}
+                  className="flex items-center gap-2"
+                >
+                  <Settings className="w-4 h-4" />
+                  APIs
+                </Button>
+              </>
             )}
             
             <Button
