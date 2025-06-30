@@ -1,5 +1,5 @@
-
 import { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { FileText } from "lucide-react";
@@ -15,6 +15,7 @@ const RichTextEditor = () => {
   const [textDirection, setTextDirection] = useState<'ltr' | 'rtl'>('ltr');
   const editorRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   // Sync content state with editor
   useEffect(() => {
@@ -147,6 +148,16 @@ const RichTextEditor = () => {
         if (editorRef.current) {
           editorRef.current.innerHTML = "";
         }
+
+        // Navigate to verification page with document data
+        const params = new URLSearchParams({
+          id: data.document_id,
+          title: data.title,
+          qa_count: data.qa_count.toString(),
+          source_links: encodeURIComponent(JSON.stringify(data.source_links || []))
+        });
+        
+        navigate(`/document-verification?${params.toString()}`);
       } else {
         throw new Error(data.error || 'Processing failed');
       }
