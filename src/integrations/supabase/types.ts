@@ -76,6 +76,7 @@ export type Database = {
           processed_content: Json | null
           source_links: string[] | null
           status: string
+          submitter_email: string | null
           submitter_id: string
           title: string
           updated_at: string | null
@@ -87,6 +88,7 @@ export type Database = {
           processed_content?: Json | null
           source_links?: string[] | null
           status?: string
+          submitter_email?: string | null
           submitter_id: string
           title: string
           updated_at?: string | null
@@ -98,6 +100,7 @@ export type Database = {
           processed_content?: Json | null
           source_links?: string[] | null
           status?: string
+          submitter_email?: string | null
           submitter_id?: string
           title?: string
           updated_at?: string | null
