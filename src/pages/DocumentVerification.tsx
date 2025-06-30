@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { FileText, CheckCircle, Edit, Send, ArrowLeft, Link as LinkIcon } from "lucide-react";
+import { FileText, CheckCircle, Edit, Send, ArrowLeft, Link as LinkIcon, Plus, Trash2 } from "lucide-react";
 
 interface QAPair {
   question: string;
@@ -34,6 +34,8 @@ const DocumentVerification = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedTitle, setEditedTitle] = useState("");
   const [editedQAPairs, setEditedQAPairs] = useState<QAPair[]>([]);
+  const [editedSourceLinks, setEditedSourceLinks] = useState<string[]>([]);
+  const [newSourceLink, setNewSourceLink] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const documentId = searchParams.get('id');
@@ -59,6 +61,7 @@ const DocumentVerification = () => {
       
       setDocumentData(initialData);
       setEditedTitle(title);
+      setEditedSourceLinks(initialData.source_links);
       
       // Then fetch the Q&A pairs from the database
       fetchQAPairs(documentId);
@@ -106,6 +109,24 @@ const DocumentVerification = () => {
     setEditedQAPairs(updatedQAPairs);
   };
 
+  const handleSourceLinkChange = (index: number, value: string) => {
+    const updatedLinks = [...editedSourceLinks];
+    updatedLinks[index] = value;
+    setEditedSourceLinks(updatedLinks);
+  };
+
+  const addSourceLink = () => {
+    if (newSourceLink.trim()) {
+      setEditedSourceLinks([...editedSourceLinks, newSourceLink.trim()]);
+      setNewSourceLink("");
+    }
+  };
+
+  const removeSourceLink = (index: number) => {
+    const updatedLinks = editedSourceLinks.filter((_, i) => i !== index);
+    setEditedSourceLinks(updatedLinks);
+  };
+
   const handleSubmit = async () => {
     if (!documentData) return;
 
@@ -117,14 +138,17 @@ const DocumentVerification = () => {
         throw new Error("User email not found");
       }
 
-      // Update the document title if changed
-      if (editedTitle !== documentData.title) {
-        const { error: titleError } = await supabase
+      // Update the document title and source links if changed
+      if (editedTitle !== documentData.title || JSON.stringify(editedSourceLinks.sort()) !== JSON.stringify(documentData.source_links.sort())) {
+        const { error: updateError } = await supabase
           .from('training_documents')
-          .update({ title: editedTitle })
+          .update({ 
+            title: editedTitle,
+            source_links: editedSourceLinks
+          })
           .eq('id', documentData.id);
 
-        if (titleError) throw titleError;
+        if (updateError) throw updateError;
       }
 
       // Update Q&A pairs if editing
@@ -277,31 +301,82 @@ const DocumentVerification = () => {
               </div>
               <div>
                 <span className="text-sm text-gray-500">Source Links:</span>
-                <p className="text-lg font-semibold text-green-600">{documentData.source_links.length}</p>
+                <p className="text-lg font-semibold text-green-600">{editedSourceLinks.length}</p>
               </div>
             </div>
 
-            {documentData.source_links.length > 0 && (
-              <div>
-                <h3 className="text-md font-medium text-gray-700 mb-2 flex items-center gap-2">
-                  <LinkIcon className="w-4 h-4" />
-                  Source Links
-                </h3>
-                <div className="space-y-2">
-                  {documentData.source_links.map((link, index) => (
-                    <a
-                      key={index}
-                      href={link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block text-blue-600 hover:text-blue-800 underline break-all"
-                    >
-                      {link}
-                    </a>
-                  ))}
+            <div>
+              <h3 className="text-md font-medium text-gray-700 mb-2 flex items-center gap-2">
+                <LinkIcon className="w-4 h-4" />
+                Source Links
+                {isEditing && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={addSourceLink}
+                    className="ml-auto flex items-center gap-1"
+                  >
+                    <Plus className="w-3 h-3" />
+                    Add Link
+                  </Button>
+                )}
+              </h3>
+              
+              {isEditing && (
+                <div className="mb-3 flex gap-2">
+                  <Input
+                    placeholder="Enter new source link URL..."
+                    value={newSourceLink}
+                    onChange={(e) => setNewSourceLink(e.target.value)}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        addSourceLink();
+                      }
+                    }}
+                  />
+                  <Button onClick={addSourceLink} size="sm">
+                    <Plus className="w-4 h-4" />
+                  </Button>
                 </div>
+              )}
+              
+              <div className="space-y-2">
+                {editedSourceLinks.length > 0 ? (
+                  editedSourceLinks.map((link, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                      {isEditing ? (
+                        <>
+                          <Input
+                            value={link}
+                            onChange={(e) => handleSourceLinkChange(index, e.target.value)}
+                            className="flex-1"
+                          />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => removeSourceLink(index)}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </>
+                      ) : (
+                        <a
+                          href={link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block text-blue-600 hover:text-blue-800 underline break-all flex-1"
+                        >
+                          {link}
+                        </a>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-gray-500 italic">No source links available</p>
+                )}
               </div>
-            )}
+            </div>
           </CardContent>
         </Card>
 
