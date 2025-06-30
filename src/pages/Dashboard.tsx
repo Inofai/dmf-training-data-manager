@@ -1,10 +1,10 @@
-
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 import { FileText, MessageSquare, Link as LinkIcon } from "lucide-react";
 
 interface TrainingDocument {
@@ -20,6 +20,7 @@ const Dashboard = () => {
   const [documents, setDocuments] = useState<TrainingDocument[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchDocuments();
@@ -69,6 +70,17 @@ const Dashboard = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDocumentClick = (doc: TrainingDocument) => {
+    const params = new URLSearchParams({
+      id: doc.id,
+      title: doc.title,
+      qa_count: (doc.training_data?.length || 0).toString(),
+      source_links: encodeURIComponent(JSON.stringify(doc.source_links || []))
+    });
+    
+    navigate(`/document-verification?${params.toString()}`);
   };
 
   const getStatusColor = (status: string) => {
@@ -129,7 +141,11 @@ const Dashboard = () => {
                 </TableHeader>
                 <TableBody>
                   {documents.map((doc) => (
-                    <TableRow key={doc.id}>
+                    <TableRow 
+                      key={doc.id}
+                      className="cursor-pointer hover:bg-blue-50 transition-colors"
+                      onClick={() => handleDocumentClick(doc)}
+                    >
                       <TableCell className="font-medium">{doc.title}</TableCell>
                       <TableCell>
                         <Badge className={getStatusColor(doc.status)}>
