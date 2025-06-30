@@ -1,0 +1,53 @@
+
+/* Enhanced styles for the rich text editor */
+[contenteditable]:empty:before {
+  content: attr(data-placeholder);
+  color: #9ca3af;
+  font-style: italic;
+}
+
+[contenteditable]:focus {
+  outline: none;
+}
+
+/* Style for rich text content */
+[contenteditable] strong,
+[contenteditable] b {
+  font-weight: bold;
+}
+
+[contenteditable] em,
+[contenteditable] i {
+  font-style: italic;
+}
+
+[contenteditable] u {
+  text-decoration: underline;
+}
+
+[contenteditable] p {
+  margin: 0.5em 0;
+}
+
+[contenteditable] h1,
+[contenteditable] h2,
+[contenteditable] h3,
+[contenteditable] h4,
+[contenteditable] h5,
+[contenteditable] h6 {
+  margin: 1em 0 0.5em 0;
+  font-weight: bold;
+}
+
+[contenteditable] ul,
+[contenteditable] ol {
+  margin: 0.5em 0;
+  padding-left: 2em;
+}
+
+[contenteditable] blockquote {
+  margin: 0.5em 0;
+  padding-left: 1em;
+  border-left: 3px solid #e5e7eb;
+  color: #6b7280;
+}

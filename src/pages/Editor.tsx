@@ -1,8 +1,8 @@
 
-import TextEditor from "@/components/TextEditor";
+import RichTextEditor from "@/components/RichTextEditor";
 
 const Editor = () => {
-  return <TextEditor />;
+  return <RichTextEditor />;
 };
 
 export default Editor;
