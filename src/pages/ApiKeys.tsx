@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import Navigation from "@/components/Navigation";
 import ApiKeyManager from "@/components/ApiKeyManager";
-import ApiKeyUsageStats from "@/components/ApiKeyUsageStats";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Key, Info } from "lucide-react";
@@ -68,15 +67,15 @@ const ApiKeys = () => {
           </CardHeader>
           <CardContent>
             <p className="text-gray-600 mb-4">
-              Manage API keys for your application. Add, view, and delete API keys as needed.
+              Manage the API key for your application. Only one API key can be active at a time.
               Only administrators can access this functionality.
             </p>
             
             <Alert>
               <Info className="h-4 w-4" />
               <AlertDescription>
-                <strong>Important:</strong> The system now uses API keys stored in the database instead of environment variables. 
-                Make sure to add an API key named <code className="bg-gray-100 px-1 rounded">OPENAI_API_KEY</code> for the content processing feature to work.
+                <strong>Important:</strong> The system now uses a single API key stored in the database. 
+                This key will be used for all content processing features that require external API access.
               </AlertDescription>
             </Alert>
           </CardContent>
@@ -84,7 +83,6 @@ const ApiKeys = () => {
 
         <div className="grid gap-8">
           <ApiKeyManager />
-          <ApiKeyUsageStats />
         </div>
       </div>
     </div>

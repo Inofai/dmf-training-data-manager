@@ -9,50 +9,13 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      api_key_usage: {
-        Row: {
-          api_key_id: string
-          endpoint: string | null
-          error_message: string | null
-          id: string
-          success: boolean | null
-          used_at: string | null
-        }
-        Insert: {
-          api_key_id: string
-          endpoint?: string | null
-          error_message?: string | null
-          id?: string
-          success?: boolean | null
-          used_at?: string | null
-        }
-        Update: {
-          api_key_id?: string
-          endpoint?: string | null
-          error_message?: string | null
-          id?: string
-          success?: boolean | null
-          used_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "api_key_usage_api_key_id_fkey"
-            columns: ["api_key_id"]
-            isOneToOne: false
-            referencedRelation: "api_keys"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      api_keys: {
+      api_key: {
         Row: {
           created_at: string | null
           created_by: string
           description: string | null
           id: string
-          is_active: boolean | null
           key_value: string
-          name: string
           updated_at: string | null
         }
         Insert: {
@@ -60,9 +23,7 @@ export type Database = {
           created_by: string
           description?: string | null
           id?: string
-          is_active?: boolean | null
           key_value: string
-          name: string
           updated_at?: string | null
         }
         Update: {
@@ -70,9 +31,7 @@ export type Database = {
           created_by?: string
           description?: string | null
           id?: string
-          is_active?: boolean | null
           key_value?: string
-          name?: string
           updated_at?: string | null
         }
         Relationships: []
@@ -80,21 +39,21 @@ export type Database = {
       training_data: {
         Row: {
           answer: string
-          created_at: string
+          created_at: string | null
           id: string
           question: string
           training_document_id: string
         }
         Insert: {
           answer: string
-          created_at?: string
+          created_at?: string | null
           id?: string
           question: string
           training_document_id: string
         }
         Update: {
           answer?: string
-          created_at?: string
+          created_at?: string | null
           id?: string
           question?: string
           training_document_id?: string
@@ -111,34 +70,37 @@ export type Database = {
       }
       training_documents: {
         Row: {
-          created_at: string
+          created_at: string | null
           id: string
           original_content: string
+          processed_content: Json | null
           source_links: string[] | null
           status: string
           submitter_id: string
           title: string
-          updated_at: string
+          updated_at: string | null
         }
         Insert: {
-          created_at?: string
+          created_at?: string | null
           id?: string
           original_content: string
+          processed_content?: Json | null
           source_links?: string[] | null
           status?: string
           submitter_id: string
           title: string
-          updated_at?: string
+          updated_at?: string | null
         }
         Update: {
-          created_at?: string
+          created_at?: string | null
           id?: string
           original_content?: string
+          processed_content?: Json | null
           source_links?: string[] | null
           status?: string
           submitter_id?: string
           title?: string
-          updated_at?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -168,8 +130,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      get_api_key_by_name: {
-        Args: { _key_name: string }
+      get_api_key: {
+        Args: Record<PropertyKey, never>
         Returns: string
       }
       has_role: {
@@ -178,15 +140,6 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
         }
         Returns: boolean
-      }
-      log_api_key_usage: {
-        Args: {
-          _key_name: string
-          _endpoint: string
-          _success?: boolean
-          _error_message?: string
-        }
-        Returns: undefined
       }
     }
     Enums: {

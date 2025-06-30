@@ -8,36 +8,37 @@ import ApiKeyTable from "./ApiKeyTable";
 
 interface ApiKey {
   id: string;
-  name: string;
   key_value: string;
   description: string | null;
   created_at: string;
-  is_active: boolean;
+  created_by: string;
 }
 
 const ApiKeyManager = () => {
-  const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
+  const [apiKey, setApiKey] = useState<ApiKey | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchApiKeys();
+    fetchApiKey();
   }, []);
 
-  const fetchApiKeys = async () => {
+  const fetchApiKey = async () => {
     try {
       const { data, error } = await supabase
-        .from('api_keys')
+        .from('api_key')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
       if (error) throw error;
-      setApiKeys(data || []);
+      setApiKey(data);
     } catch (error) {
-      console.error('Error fetching API keys:', error);
+      console.error('Error fetching API key:', error);
       toast({
         title: "Error",
-        description: "Failed to fetch API keys.",
+        description: "Failed to fetch API key.",
         variant: "destructive",
       });
     } finally {
@@ -49,7 +50,7 @@ const ApiKeyManager = () => {
     return (
       <div className="text-center py-8">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-        <p className="mt-2 text-gray-600">Loading API keys...</p>
+        <p className="mt-2 text-gray-600">Loading API key...</p>
       </div>
     );
   }
@@ -58,11 +59,11 @@ const ApiKeyManager = () => {
     <div className="space-y-6">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>API Keys</CardTitle>
-          <ApiKeyAddDialog onApiKeyAdded={fetchApiKeys} />
+          <CardTitle>API Key Management</CardTitle>
+          {!apiKey && <ApiKeyAddDialog onApiKeyAdded={fetchApiKey} />}
         </CardHeader>
         <CardContent>
-          <ApiKeyTable apiKeys={apiKeys} onApiKeyDeleted={fetchApiKeys} />
+          <ApiKeyTable apiKey={apiKey} onApiKeyDeleted={fetchApiKey} />
         </CardContent>
       </Card>
     </div>
