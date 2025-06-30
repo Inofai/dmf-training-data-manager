@@ -51,6 +51,7 @@ export type Database = {
           description: string | null
           id: string
           is_active: boolean | null
+          is_default: boolean | null
           key_value: string
           name: string
           updated_at: string | null
@@ -61,6 +62,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean | null
+          is_default?: boolean | null
           key_value: string
           name: string
           updated_at?: string | null
@@ -71,6 +73,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean | null
+          is_default?: boolean | null
           key_value?: string
           name?: string
           updated_at?: string | null
@@ -172,6 +175,10 @@ export type Database = {
         Args: { _key_name: string }
         Returns: string
       }
+      get_default_api_key: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       has_role: {
         Args: {
           _user_id: string
@@ -186,6 +193,10 @@ export type Database = {
           _success?: boolean
           _error_message?: string
         }
+        Returns: undefined
+      }
+      log_default_api_key_usage: {
+        Args: { _endpoint: string; _success?: boolean; _error_message?: string }
         Returns: undefined
       }
     }

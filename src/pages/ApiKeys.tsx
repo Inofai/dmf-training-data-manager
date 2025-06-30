@@ -75,8 +75,9 @@ const ApiKeys = () => {
             <Alert>
               <Info className="h-4 w-4" />
               <AlertDescription>
-                <strong>Important:</strong> The system now uses API keys stored in the database instead of environment variables. 
-                Make sure to add an API key named <code className="bg-gray-100 px-1 rounded">OPENAI_API_KEY</code> for the content processing feature to work.
+                <strong>Important:</strong> The system now uses a default API key stored in the database. 
+                Make sure to set one API key as the default for the content processing feature to work.
+                The star icon indicates which key is currently set as default.
               </AlertDescription>
             </Alert>
           </CardContent>

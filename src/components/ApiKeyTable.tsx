@@ -11,7 +11,7 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { Eye, X } from "lucide-react";
+import { Eye, X, Star } from "lucide-react";
 
 interface ApiKey {
   id: string;
@@ -20,6 +20,7 @@ interface ApiKey {
   description: string | null;
   created_at: string;
   is_active: boolean;
+  is_default?: boolean;
 }
 
 interface ApiKeyTableProps {
@@ -60,6 +61,38 @@ const ApiKeyTable = ({ apiKeys, onApiKeyDeleted }: ApiKeyTableProps) => {
     }
   };
 
+  const handleSetDefault = async (id: string) => {
+    try {
+      // First, unset any existing default
+      await supabase
+        .from('api_keys')
+        .update({ is_default: false })
+        .neq('id', id);
+      
+      // Then set the new default
+      const { error } = await supabase
+        .from('api_keys')
+        .update({ is_default: true })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Default API key updated successfully.",
+      });
+
+      onApiKeyDeleted(); // Refresh the list
+    } catch (error) {
+      console.error('Error setting default API key:', error);
+      toast({
+        title: "Error",
+        description: "Failed to set default API key.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const toggleKeyVisibility = (id: string) => {
     setVisibleKeys(prev => {
       const newSet = new Set(prev);
@@ -89,6 +122,7 @@ const ApiKeyTable = ({ apiKeys, onApiKeyDeleted }: ApiKeyTableProps) => {
           <TableHead>Description</TableHead>
           <TableHead>Created</TableHead>
           <TableHead>Status</TableHead>
+          <TableHead>Default</TableHead>
           <TableHead>Actions</TableHead>
         </TableRow>
       </TableHeader>
@@ -122,6 +156,24 @@ const ApiKeyTable = ({ apiKeys, onApiKeyDeleted }: ApiKeyTableProps) => {
               }`}>
                 {key.is_active ? 'Active' : 'Inactive'}
               </span>
+            </TableCell>
+            <TableCell>
+              {key.is_default ? (
+                <span className="flex items-center gap-1 text-yellow-600">
+                  <Star className="w-4 h-4 fill-current" />
+                  Default
+                </span>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleSetDefault(key.id)}
+                  className="text-gray-500 hover:text-yellow-600"
+                >
+                  <Star className="w-4 h-4" />
+                  Set Default
+                </Button>
+              )}
             </TableCell>
             <TableCell>
               <Button
