@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -39,18 +40,38 @@ const ApiKeyTable = ({ apiKeys, onApiKeyDeleted }: ApiKeyTableProps) => {
     try {
       console.log('Starting API key deletion process for ID:', id);
       
-      // First, try to delete all usage records for this API key
-      const { error: usageDeleteError } = await supabase
+      // Use a more robust approach - delete with CASCADE behavior simulation
+      // First, get the count of usage records to delete
+      const { count: usageCount } = await supabase
         .from('api_key_usage')
-        .delete()
+        .select('*', { count: 'exact', head: true })
         .eq('api_key_id', id);
 
-      if (usageDeleteError) {
-        console.error('Error deleting API key usage records:', usageDeleteError);
-        throw new Error(`Failed to delete usage records: ${usageDeleteError.message}`);
+      console.log(`Found ${usageCount || 0} usage records to delete`);
+
+      // Delete usage records in batches if there are many
+      if (usageCount && usageCount > 0) {
+        let deletedCount = 0;
+        const batchSize = 1000;
+        
+        while (deletedCount < usageCount) {
+          const { error: batchDeleteError } = await supabase
+            .from('api_key_usage')
+            .delete()
+            .eq('api_key_id', id)
+            .limit(batchSize);
+
+          if (batchDeleteError) {
+            console.error('Error deleting usage records batch:', batchDeleteError);
+            throw new Error(`Failed to delete usage records: ${batchDeleteError.message}`);
+          }
+
+          deletedCount += batchSize;
+          console.log(`Deleted batch of usage records, progress: ${Math.min(deletedCount, usageCount)}/${usageCount}`);
+        }
       }
 
-      console.log('Usage records deleted successfully');
+      console.log('All usage records deleted successfully');
 
       // Now delete the API key itself
       const { error: keyDeleteError } = await supabase
