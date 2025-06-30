@@ -64,8 +64,7 @@ const ApiKeyAddDialog = ({ onApiKeyAdded }: ApiKeyAddDialogProps) => {
           name: 'OPENAI_API_KEY',
           key_value: newKey.key_value.trim(),
           description: newKey.description.trim() || null,
-          created_by: (await supabase.auth.getUser()).data.user?.id,
-          is_default: true
+          created_by: (await supabase.auth.getUser()).data.user?.id
         });
 
       if (error) throw error;

@@ -21,7 +21,6 @@ interface ApiKey {
   description: string | null;
   created_at: string;
   is_active: boolean;
-  is_default?: boolean;
 }
 
 interface ApiKeyTableProps {

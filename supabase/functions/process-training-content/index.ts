@@ -68,20 +68,22 @@ serve(async (req) => {
 
     console.log('Processing content for user:', user.id);
 
-    // Get default OpenAI API key from database
-    const { data: openAIApiKey, error: keyError } = await supabase.rpc('get_default_api_key');
+    // Get OpenAI API key from database using the original function
+    const { data: openAIApiKey, error: keyError } = await supabase.rpc('get_api_key_by_name', {
+      _key_name: 'OPENAI_API_KEY'
+    });
 
     if (keyError) {
-      console.error('Error fetching default API key:', keyError);
-      throw new Error('Failed to retrieve default API key from database');
+      console.error('Error fetching OpenAI API key:', keyError);
+      throw new Error('Failed to retrieve OpenAI API key from database');
     }
 
     if (!openAIApiKey) {
-      console.error('Default API key not found in database');
-      throw new Error('Default API key not configured. Please set a default API key in the API Keys management page.');
+      console.error('OpenAI API key not found in database');
+      throw new Error('OpenAI API key not configured. Please add an API key with name "OPENAI_API_KEY" in the API Keys management page.');
     }
 
-    console.log('Retrieved default API key from database');
+    console.log('Retrieved OpenAI API key from database');
 
     // Create language-specific system prompt
     const languageInstructions = detectedLanguage === 'English' 
@@ -142,7 +144,8 @@ serve(async (req) => {
       });
 
       // Log API usage - success case
-      await supabase.rpc('log_default_api_key_usage', {
+      await supabase.rpc('log_api_key_usage', {
+        _key_name: 'OPENAI_API_KEY',
         _endpoint: 'chat/completions',
         _success: openAIResponse.ok
       });
@@ -152,7 +155,8 @@ serve(async (req) => {
       openAIError = fetchError.message;
       
       // Log API usage - error case
-      await supabase.rpc('log_default_api_key_usage', {
+      await supabase.rpc('log_api_key_usage', {
+        _key_name: 'OPENAI_API_KEY',
         _endpoint: 'chat/completions',
         _success: false,
         _error_message: fetchError.message
@@ -166,7 +170,8 @@ serve(async (req) => {
       console.error('OpenAI API error:', errorText);
       
       // Log API usage - API error case
-      await supabase.rpc('log_default_api_key_usage', {
+      await supabase.rpc('log_api_key_usage', {
+        _key_name: 'OPENAI_API_KEY',
         _endpoint: 'chat/completions',
         _success: false,
         _error_message: `HTTP ${openAIResponse.status}: ${errorText}`
@@ -176,7 +181,7 @@ serve(async (req) => {
       if (openAIResponse.status === 429) {
         throw new Error('OpenAI quota exceeded. Please check your OpenAI billing and usage limits at https://platform.openai.com/account/billing');
       } else if (openAIResponse.status === 401) {
-        throw new Error('Invalid OpenAI API key. Please check your default API key configuration in the API Keys management page.');
+        throw new Error('Invalid OpenAI API key. Please check your API key configuration in the API Keys management page.');
       } else {
         throw new Error(`OpenAI API error (${openAIResponse.status}): ${errorText}`);
       }
