@@ -15,10 +15,17 @@ export const useAuth = () => {
     setAdminCheckComplete(false);
     
     try {
-      const { data, error } = await supabase.rpc('has_role', {
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Admin check timeout')), 5000)
+      );
+      
+      const adminCheckPromise = supabase.rpc('has_role', {
         _user_id: userId,
         _role: 'admin'
       });
+      
+      const { data, error } = await Promise.race([adminCheckPromise, timeoutPromise]) as any;
       
       if (error) {
         console.error('❌ Error checking admin role:', error);
@@ -29,6 +36,7 @@ export const useAuth = () => {
       }
     } catch (error) {
       console.error('❌ Exception during admin role check:', error);
+      // If there's any error or timeout, default to non-admin
       setIsAdmin(false);
     } finally {
       setAdminCheckComplete(true);
@@ -70,6 +78,7 @@ export const useAuth = () => {
         if (error) {
           console.error('❌ Error getting session:', error);
           setLoading(false);
+          setAdminCheckComplete(true);
           return;
         }
         
@@ -89,6 +98,7 @@ export const useAuth = () => {
       } catch (error) {
         console.error('❌ Exception during auth initialization:', error);
         setLoading(false);
+        setAdminCheckComplete(true);
       }
     };
 
