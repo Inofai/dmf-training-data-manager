@@ -143,14 +143,6 @@ const LoginForm = () => {
               isSignUp ? "Create Account" : "Sign In"
             )}
           </Button>
-
-          <button
-            type="button"
-            onClick={() => setIsSignUp(!isSignUp)}
-            className="w-full text-blue-600 hover:text-blue-500 font-medium transition-colors"
-          >
-            {isSignUp ? "Already have an account? Sign in" : "Don't have an account? Sign up"}
-          </button>
         </form>
       </CardContent>
     </Card>
