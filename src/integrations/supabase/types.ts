@@ -130,6 +130,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      delete_user_and_data: {
+        Args: { user_id_to_delete: string }
+        Returns: boolean
+      }
       get_api_key: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -139,6 +143,10 @@ export type Database = {
           _user_id: string
           _role: Database["public"]["Enums"]["app_role"]
         }
+        Returns: boolean
+      }
+      is_admin_user: {
+        Args: { check_user_id: string }
         Returns: boolean
       }
     }

@@ -1,11 +1,24 @@
+
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { FileText, MessageSquare, Link as LinkIcon } from "lucide-react";
+import { FileText, MessageSquare, Link as LinkIcon, Trash2 } from "lucide-react";
 
 interface TrainingDocument {
   id: string;
@@ -72,7 +85,12 @@ const Dashboard = () => {
     }
   };
 
-  const handleDocumentClick = (doc: TrainingDocument) => {
+  const handleDocumentClick = (doc: TrainingDocument, event: React.MouseEvent) => {
+    // Don't navigate if clicking on delete button or its parent
+    if ((event.target as HTMLElement).closest('[data-delete-button]')) {
+      return;
+    }
+
     const params = new URLSearchParams({
       id: doc.id,
       title: doc.title,
@@ -81,6 +99,41 @@ const Dashboard = () => {
     });
     
     navigate(`/document-verification?${params.toString()}`);
+  };
+
+  const deleteDocument = async (documentId: string) => {
+    try {
+      // First delete training data associated with the document
+      const { error: trainingDataError } = await supabase
+        .from('training_data')
+        .delete()
+        .eq('training_document_id', documentId);
+
+      if (trainingDataError) throw trainingDataError;
+
+      // Then delete the document itself
+      const { error: documentError } = await supabase
+        .from('training_documents')
+        .delete()
+        .eq('id', documentId);
+
+      if (documentError) throw documentError;
+
+      toast({
+        title: "Success",
+        description: "Document deleted successfully.",
+      });
+
+      // Refresh the documents list
+      fetchDocuments();
+    } catch (error) {
+      console.error('Error deleting document:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete document.",
+        variant: "destructive",
+      });
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -137,6 +190,7 @@ const Dashboard = () => {
                     <TableHead>Q&A Pairs</TableHead>
                     <TableHead>Source Links</TableHead>
                     <TableHead>Created</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -144,7 +198,7 @@ const Dashboard = () => {
                     <TableRow 
                       key={doc.id}
                       className="cursor-pointer hover:bg-blue-50 transition-colors"
-                      onClick={() => handleDocumentClick(doc)}
+                      onClick={(e) => handleDocumentClick(doc, e)}
                     >
                       <TableCell className="font-medium">{doc.title}</TableCell>
                       <TableCell>
@@ -166,6 +220,41 @@ const Dashboard = () => {
                       </TableCell>
                       <TableCell>
                         {new Date(doc.created_at).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              data-delete-button
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Document</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete "{doc.title}"? This action cannot be undone.
+                                All associated Q&A pairs will also be deleted.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteDocument(doc.id);
+                                }}
+                                className="bg-red-600 hover:bg-red-700"
+                              >
+                                Delete Document
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </TableCell>
                     </TableRow>
                   ))}

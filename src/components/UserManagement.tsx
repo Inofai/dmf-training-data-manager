@@ -20,7 +20,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Users } from "lucide-react";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Users, Trash2 } from "lucide-react";
+import AddUserDialog from "./AddUserDialog";
 
 interface UserWithRole {
   id: string;
@@ -35,11 +47,18 @@ interface UserWithRole {
 const UserManagement = () => {
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
+    getCurrentUser();
     fetchUsers();
   }, []);
+
+  const getCurrentUser = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    setCurrentUserId(user?.id || null);
+  };
 
   const fetchUsers = async () => {
     try {
@@ -124,8 +143,46 @@ const UserManagement = () => {
     }
   };
 
+  const deleteUser = async (userId: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('manage-users', {
+        body: {
+          action: 'delete',
+          userId: userId
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        toast({
+          title: "Success",
+          description: "User deleted successfully.",
+        });
+        fetchUsers(); // Refresh the list
+      } else {
+        throw new Error(data?.error || 'Failed to delete user');
+      }
+    } catch (error: any) {
+      console.error('Error deleting user:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete user.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getUserPrimaryRole = (roles: Array<{role: 'admin' | 'user'}>) => {
     return roles.find(r => r.role === 'admin') ? 'admin' : 'user';
+  };
+
+  const isCurrentUser = (userId: string) => {
+    return userId === currentUserId;
+  };
+
+  const isUserAdmin = (roles: Array<{role: 'admin' | 'user'}>) => {
+    return roles.some(r => r.role === 'admin');
   };
 
   if (loading) {
@@ -150,10 +207,13 @@ const UserManagement = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Users className="w-5 h-5" />
-          Users ({users.length})
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <Users className="w-5 h-5" />
+            Users ({users.length})
+          </CardTitle>
+          <AddUserDialog onUserAdded={fetchUsers} />
+        </div>
       </CardHeader>
       <CardContent>
         {users.length === 0 ? (
@@ -173,10 +233,20 @@ const UserManagement = () => {
             <TableBody>
               {users.map((user) => {
                 const primaryRole = getUserPrimaryRole(user.roles);
+                const isAdmin = isUserAdmin(user.roles);
+                const isCurrent = isCurrentUser(user.id);
+                
                 return (
                   <TableRow key={user.id}>
                     <TableCell>
-                      <span className="font-mono text-sm">{user.id}</span>
+                      <div className="flex flex-col">
+                        <span className="font-mono text-sm">{user.id}</span>
+                        {isCurrent && (
+                          <Badge variant="outline" className="text-xs w-fit mt-1">
+                            You
+                          </Badge>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <Badge variant={primaryRole === 'admin' ? 'default' : 'secondary'}>
@@ -187,20 +257,56 @@ const UserManagement = () => {
                       {new Date(user.created_at).toLocaleDateString()}
                     </TableCell>
                     <TableCell>
-                      <Select
-                        value={primaryRole}
-                        onValueChange={(value: 'admin' | 'user') => 
-                          updateUserRole(user.id, value)
-                        }
-                      >
-                        <SelectTrigger className="w-32">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="user">User</SelectItem>
-                          <SelectItem value="admin">Admin</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <div className="flex items-center gap-2">
+                        {/* Role selection - disabled for admin users and current user */}
+                        <Select
+                          value={primaryRole}
+                          onValueChange={(value: 'admin' | 'user') => 
+                            updateUserRole(user.id, value)
+                          }
+                          disabled={isAdmin || isCurrent}
+                        >
+                          <SelectTrigger className="w-32">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="user">User</SelectItem>
+                            <SelectItem value="admin">Admin</SelectItem>
+                          </SelectContent>
+                        </Select>
+
+                        {/* Delete button - disabled for admin users and current user */}
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={isAdmin || isCurrent}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete User</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete this user? This action cannot be undone.
+                                All their training documents and data will also be deleted.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => deleteUser(user.id)}
+                                className="bg-red-600 hover:bg-red-700"
+                              >
+                                Delete User
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
