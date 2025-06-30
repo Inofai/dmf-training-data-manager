@@ -11,8 +11,7 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { Eye } from "lucide-react";
-import DeleteApiKeyDialog from "./DeleteApiKeyDialog";
+import { Eye, X } from "lucide-react";
 
 interface ApiKey {
   id: string;
@@ -30,79 +29,33 @@ interface ApiKeyTableProps {
 
 const ApiKeyTable = ({ apiKeys, onApiKeyDeleted }: ApiKeyTableProps) => {
   const [visibleKeys, setVisibleKeys] = useState<Set<string>>(new Set());
-  const [deletingKeys, setDeletingKeys] = useState<Set<string>>(new Set());
   const { toast } = useToast();
 
   const handleDeleteApiKey = async (id: string) => {
-    setDeletingKeys(prev => new Set(prev).add(id));
-    
+    if (!confirm("Are you sure you want to delete this API key?")) {
+      return;
+    }
+
     try {
-      console.log('Starting API key deletion process for ID:', id);
-      
-      // Use a more robust approach - delete with CASCADE behavior simulation
-      // First, get the count of usage records to delete
-      const { count: usageCount } = await supabase
-        .from('api_key_usage')
-        .select('*', { count: 'exact', head: true })
-        .eq('api_key_id', id);
-
-      console.log(`Found ${usageCount || 0} usage records to delete`);
-
-      // Delete usage records in batches if there are many
-      if (usageCount && usageCount > 0) {
-        let deletedCount = 0;
-        const batchSize = 1000;
-        
-        while (deletedCount < usageCount) {
-          const { error: batchDeleteError } = await supabase
-            .from('api_key_usage')
-            .delete()
-            .eq('api_key_id', id)
-            .limit(batchSize);
-
-          if (batchDeleteError) {
-            console.error('Error deleting usage records batch:', batchDeleteError);
-            throw new Error(`Failed to delete usage records: ${batchDeleteError.message}`);
-          }
-
-          deletedCount += batchSize;
-          console.log(`Deleted batch of usage records, progress: ${Math.min(deletedCount, usageCount)}/${usageCount}`);
-        }
-      }
-
-      console.log('All usage records deleted successfully');
-
-      // Now delete the API key itself
-      const { error: keyDeleteError } = await supabase
+      const { error } = await supabase
         .from('api_keys')
         .delete()
         .eq('id', id);
 
-      if (keyDeleteError) {
-        console.error('Error deleting API key:', keyDeleteError);
-        throw new Error(`Failed to delete API key: ${keyDeleteError.message}`);
-      }
+      if (error) throw error;
 
-      console.log('API key deleted successfully');
-      
       toast({
         title: "Success",
-        description: "API key and all associated usage records deleted successfully.",
+        description: "API key deleted successfully.",
       });
 
       onApiKeyDeleted();
     } catch (error) {
-      console.error('Complete error during deletion:', error);
+      console.error('Error deleting API key:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to delete API key. Please try again.",
+        description: "Failed to delete API key.",
         variant: "destructive",
-      });
-    } finally {
-      setDeletingKeys(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(id);
-        return newSet;
       });
     }
   };
@@ -122,7 +75,7 @@ const ApiKeyTable = ({ apiKeys, onApiKeyDeleted }: ApiKeyTableProps) => {
   if (apiKeys.length === 0) {
     return (
       <div className="text-center py-8 text-gray-500">
-        No OpenAI API key found. Add your OpenAI API key to get started.
+        No API keys found. Add your first API key to get started.
       </div>
     );
   }
@@ -171,13 +124,14 @@ const ApiKeyTable = ({ apiKeys, onApiKeyDeleted }: ApiKeyTableProps) => {
               </span>
             </TableCell>
             <TableCell>
-              {deletingKeys.has(key.id) ? (
-                <div className="text-sm text-gray-500">Deleting...</div>
-              ) : (
-                <DeleteApiKeyDialog 
-                  onConfirm={() => handleDeleteApiKey(key.id)}
-                />
-              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleDeleteApiKey(key.id)}
+                className="text-red-600 hover:text-red-800"
+              >
+                <X className="w-4 h-4" />
+              </Button>
             </TableCell>
           </TableRow>
         ))}

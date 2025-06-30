@@ -6,7 +6,8 @@ import Navigation from "@/components/Navigation";
 import ApiKeyManager from "@/components/ApiKeyManager";
 import ApiKeyUsageStats from "@/components/ApiKeyUsageStats";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Key } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Key, Info } from "lucide-react";
 
 const ApiKeys = () => {
   const { user, loading, isAdmin, adminCheckComplete } = useAuth();
@@ -62,14 +63,22 @@ const ApiKeys = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-2xl text-blue-700">
               <Key className="w-6 h-6" />
-              OpenAI API Key Management
+              API Key Management
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-gray-600">
-              Manage your OpenAI API key for content processing. Only one API key with the name "OPENAI_API_KEY" is allowed.
+            <p className="text-gray-600 mb-4">
+              Manage API keys for your application. Add, view, and delete API keys as needed.
               Only administrators can access this functionality.
             </p>
+            
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertDescription>
+                <strong>Important:</strong> The system now uses API keys stored in the database instead of environment variables. 
+                Make sure to add an API key named <code className="bg-gray-100 px-1 rounded">OPENAI_API_KEY</code> for the content processing feature to work.
+              </AlertDescription>
+            </Alert>
           </CardContent>
         </Card>
 

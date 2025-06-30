@@ -7,15 +7,12 @@ import { supabase } from "@/integrations/supabase/client";
 import RichTextToolbar from "./RichTextToolbar";
 import RichTextEditorContent from "./RichTextEditorContent";
 import RichTextSubmissionControls from "./RichTextSubmissionControls";
-import ProcessingResultsScreen from "./ProcessingResultsScreen";
 import "./RichTextEditor.css";
 
 const RichTextEditor = () => {
   const [content, setContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [textDirection, setTextDirection] = useState<'ltr' | 'rtl'>('ltr');
-  const [processingResult, setProcessingResult] = useState<any>(null);
-  const [showResults, setShowResults] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -120,23 +117,6 @@ const RichTextEditor = () => {
       return;
     }
 
-    // Check if there's a default API key configured
-    const { data: apiKeyData, error: apiKeyError } = await supabase
-      .from('api_keys')
-      .select('*')
-      .eq('name', 'OPENAI_API_KEY')
-      .eq('is_active', true)
-      .single();
-
-    if (apiKeyError || !apiKeyData) {
-      toast({
-        title: "API Key Required",
-        description: "No OpenAI API key found. Please configure an API key in the API Keys management page.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsSubmitting(true);
     
     try {
@@ -145,56 +125,47 @@ const RichTextEditor = () => {
       // Call the edge function to process the content
       const { data, error } = await supabase.functions.invoke('process-training-content', {
         body: { 
-          content: htmlContent
+          content: htmlContent // Send the full HTML content
         }
       });
 
       if (error) {
         console.error('Error processing content:', error);
-        throw new Error(error.message || 'Processing failed');
+        throw error;
       }
 
       console.log('Processing result:', data);
 
-      // Set the result and show the verification screen
-      setProcessingResult(data);
-      setShowResults(true);
-
-      // Clear the content after successful submission
       if (data.success) {
+        toast({
+          title: "Document Processed Successfully!",
+          description: `Created "${data.title}" with ${data.qa_count} Q&A pairs${data.source_links?.length ? ` and ${data.source_links.length} source links` : ''}.`,
+        });
+        
+        // Clear the content after successful submission
         setContent("");
         if (editorRef.current) {
           editorRef.current.innerHTML = "";
         }
+      } else {
+        throw new Error(data.error || 'Processing failed');
       }
 
     } catch (error) {
       console.error('Submission error:', error);
-      
-      // Show results screen even for errors
-      setProcessingResult({
-        success: false,
-        error: error.message || "Failed to process the document. Please try again."
+      toast({
+        title: "Processing Failed",
+        description: error.message || "Failed to process the document. Please try again.",
+        variant: "destructive",
       });
-      setShowResults(true);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleGoBack = () => {
-    setShowResults(false);
-    setProcessingResult(null);
-  };
-
   const getCharacterCount = () => {
     return editorRef.current?.textContent?.length || 0;
   };
-
-  // Show results screen if processing is complete
-  if (showResults && processingResult) {
-    return <ProcessingResultsScreen result={processingResult} onGoBack={handleGoBack} />;
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-100 p-4">

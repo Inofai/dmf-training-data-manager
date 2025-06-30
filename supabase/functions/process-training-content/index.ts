@@ -8,37 +8,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Function to detect language from text
-function detectLanguage(text: string): string {
-  // Simple language detection based on character patterns
-  const cleanText = text.toLowerCase().replace(/[^\p{L}\s]/gu, '');
-  
-  // Check for common patterns
-  if (/[\u4e00-\u9fff]/.test(text)) return 'Chinese';
-  if (/[\u3040-\u309f\u30a0-\u30ff]/.test(text)) return 'Japanese';
-  if (/[\uac00-\ud7af]/.test(text)) return 'Korean';
-  if (/[\u0600-\u06ff]/.test(text)) return 'Arabic';
-  if (/[\u0400-\u04ff]/.test(text)) return 'Russian';
-  if (/[\u0370-\u03ff]/.test(text)) return 'Greek';
-  if (/[\u0590-\u05ff]/.test(text)) return 'Hebrew';
-  
-  // Common words detection for European languages
-  const commonWords = {
-    Spanish: ['el', 'la', 'de', 'que', 'y', 'en', 'un', 'es', 'se', 'no', 'te', 'lo', 'le', 'da', 'su', 'por', 'son', 'con', 'para', 'una'],
-    French: ['le', 'de', 'et', 'à', 'un', 'il', 'être', 'et', 'en', 'avoir', 'que', 'pour', 'dans', 'ce', 'son', 'une', 'sur', 'avec', 'ne', 'se'],
-    German: ['der', 'die', 'und', 'in', 'den', 'von', 'zu', 'das', 'mit', 'sich', 'des', 'auf', 'für', 'ist', 'im', 'dem', 'nicht', 'ein', 'eine', 'als'],
-    Italian: ['il', 'di', 'che', 'e', 'la', 'per', 'un', 'in', 'con', 'del', 'da', 'le', 'al', 'dei', 'delle', 'nel', 'sulla', 'una', 'nella', 'gli'],
-    Portuguese: ['o', 'de', 'e', 'do', 'da', 'em', 'um', 'para', 'é', 'com', 'não', 'uma', 'os', 'no', 'se', 'na', 'por', 'mais', 'as', 'dos']
-  };
-  
-  for (const [language, words] of Object.entries(commonWords)) {
-    const matchCount = words.filter(word => cleanText.includes(` ${word} `) || cleanText.startsWith(`${word} `) || cleanText.endsWith(` ${word}`)).length;
-    if (matchCount >= 3) return language;
-  }
-  
-  return 'English'; // Default fallback
-}
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -47,10 +16,6 @@ serve(async (req) => {
   try {
     const { content } = await req.json();
     console.log('Processing content:', content.substring(0, 100) + '...');
-
-    // Detect the language of the input content
-    const detectedLanguage = detectLanguage(content);
-    console.log('Detected language:', detectedLanguage);
 
     // Create Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -68,27 +33,22 @@ serve(async (req) => {
 
     console.log('Processing content for user:', user.id);
 
-    // Get OpenAI API key from database using the original function
+    // Get OpenAI API key from database
     const { data: openAIApiKey, error: keyError } = await supabase.rpc('get_api_key_by_name', {
       _key_name: 'OPENAI_API_KEY'
     });
 
     if (keyError) {
-      console.error('Error fetching OpenAI API key:', keyError);
-      throw new Error('Failed to retrieve OpenAI API key from database');
+      console.error('Error fetching API key:', keyError);
+      throw new Error('Failed to retrieve API key from database');
     }
 
     if (!openAIApiKey) {
       console.error('OpenAI API key not found in database');
-      throw new Error('OpenAI API key not configured. Please add an API key with name "OPENAI_API_KEY" in the API Keys management page.');
+      throw new Error('OpenAI API key not configured. Please add it in the API Keys management page.');
     }
 
     console.log('Retrieved OpenAI API key from database');
-
-    // Create language-specific system prompt
-    const languageInstructions = detectedLanguage === 'English' 
-      ? 'Generate questions and answers in English.'
-      : `Generate questions and answers in ${detectedLanguage}. The questions and answers must be in the same language as the input document (${detectedLanguage}).`;
 
     // Call OpenAI to extract structured data
     let openAIResponse;
@@ -113,8 +73,6 @@ serve(async (req) => {
               2. Any source links mentioned in the document (as an array)
               3. Question-answer pairs that would be useful for training an AI model
               
-              IMPORTANT: ${languageInstructions}
-              
               Return your response as a JSON object with this exact structure:
               {
                 "title": "Document title here",
@@ -128,11 +86,10 @@ serve(async (req) => {
               }
               
               Make sure to:
-              - Generate multiple relevant question-answer pairs in the same language as the input
+              - Generate multiple relevant question-answer pairs
               - Extract all URLs mentioned in the document
               - Create a concise but descriptive title
-              - Ensure questions are clear and answers are comprehensive
-              - Maintain the original language throughout (detected as: ${detectedLanguage})`
+              - Ensure questions are clear and answers are comprehensive`
             },
             {
               role: 'user',
@@ -240,7 +197,7 @@ serve(async (req) => {
         throw dataError;
       }
 
-      console.log(`Created ${trainingData.length} Q&A pairs in ${detectedLanguage}`);
+      console.log(`Created ${trainingData.length} Q&A pairs`);
     }
 
     return new Response(
@@ -249,8 +206,7 @@ serve(async (req) => {
         document_id: trainingDoc.id,
         title: parsedData.title,
         qa_count: parsedData.qa_pairs?.length || 0,
-        source_links: parsedData.source_links || [],
-        language: detectedLanguage
+        source_links: parsedData.source_links || []
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
