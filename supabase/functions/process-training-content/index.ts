@@ -87,7 +87,15 @@ serve(async (req) => {
     if (!openAIResponse.ok) {
       const errorText = await openAIResponse.text();
       console.error('OpenAI API error:', errorText);
-      throw new Error(`OpenAI API error: ${openAIResponse.status}`);
+      
+      // Handle specific error types
+      if (openAIResponse.status === 429) {
+        throw new Error('OpenAI quota exceeded. Please check your OpenAI billing and usage limits at https://platform.openai.com/account/billing');
+      } else if (openAIResponse.status === 401) {
+        throw new Error('Invalid OpenAI API key. Please check your API key configuration.');
+      } else {
+        throw new Error(`OpenAI API error (${openAIResponse.status}): ${errorText}`);
+      }
     }
 
     const openAIData = await openAIResponse.json();
@@ -102,7 +110,7 @@ serve(async (req) => {
       parsedData = JSON.parse(extractedContent);
     } catch (parseError) {
       console.error('Failed to parse OpenAI response:', parseError);
-      throw new Error('Failed to parse extracted data');
+      throw new Error('Failed to parse extracted data from OpenAI response');
     }
 
     // Insert the training document
