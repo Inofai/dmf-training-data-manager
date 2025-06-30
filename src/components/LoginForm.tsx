@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -117,18 +116,6 @@ const LoginForm = () => {
             )}
           </Button>
         </form>
-
-        <div className="mt-6 text-center">
-          <p className="text-sm text-gray-600">
-            Don't have an account?{" "}
-            <a
-              href="#"
-              className="text-blue-600 hover:text-blue-500 font-medium transition-colors"
-            >
-              Sign up here
-            </a>
-          </p>
-        </div>
 
         <div className="mt-6">
           <div className="relative">
