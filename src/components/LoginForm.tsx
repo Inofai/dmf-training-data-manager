@@ -4,15 +4,17 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Lock, User, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const LoginForm = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -20,19 +22,50 @@ const LoginForm = () => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate login process
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      if (isSignUp) {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/`
+          }
+        });
+
+        if (error) {
+          throw error;
+        }
+
+        toast({
+          title: "Account Created",
+          description: "Please check your email to confirm your account.",
+        });
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (error) {
+          throw error;
+        }
+
+        toast({
+          title: "Login Successful",
+          description: "Welcome back!",
+        });
+
+        navigate("/");
+      }
+    } catch (error: any) {
       toast({
-        title: "Login Successful",
-        description: "Welcome! Redirecting to the editor...",
+        title: "Error",
+        description: error.message || "An error occurred during authentication.",
+        variant: "destructive",
       });
-      
-      // Navigate to editor after successful login
-      setTimeout(() => {
-        navigate("/editor");
-      }, 1000);
-    }, 1500);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -43,6 +76,9 @@ const LoginForm = () => {
             <Lock className="w-6 h-6 text-white" />
           </div>
         </div>
+        <CardTitle className="text-center">
+          {isSignUp ? "Create Account" : "Sign In"}
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -93,22 +129,6 @@ const LoginForm = () => {
             </div>
           </div>
 
-          <div className="flex items-center justify-between text-sm">
-            <label className="flex items-center space-x-2 cursor-pointer">
-              <input
-                type="checkbox"
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              <span className="text-gray-600">Remember me</span>
-            </label>
-            <a
-              href="#"
-              className="text-blue-600 hover:text-blue-500 font-medium transition-colors"
-            >
-              Forgot password?
-            </a>
-          </div>
-
           <Button
             type="submit"
             className="w-full h-12 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-medium rounded-lg transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98]"
@@ -117,12 +137,22 @@ const LoginForm = () => {
             {isLoading ? (
               <div className="flex items-center space-x-2">
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                <span>Signing in...</span>
+                <span>{isSignUp ? "Creating Account..." : "Signing in..."}</span>
               </div>
             ) : (
-              "Sign In"
+              isSignUp ? "Create Account" : "Sign In"
             )}
           </Button>
+
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={() => setIsSignUp(!isSignUp)}
+              className="text-blue-600 hover:text-blue-500 font-medium transition-colors"
+            >
+              {isSignUp ? "Already have an account? Sign in" : "Don't have an account? Sign up"}
+            </button>
+          </div>
         </form>
       </CardContent>
     </Card>
