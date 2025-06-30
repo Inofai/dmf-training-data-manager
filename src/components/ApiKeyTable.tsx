@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -44,7 +45,7 @@ const ApiKeyTable = ({ apiKeys, onApiKeyDeleted }: ApiKeyTableProps) => {
         .from('api_key_usage')
         .delete()
         .eq('api_key_id', id)
-        .select('*', { count: 'exact', head: true });
+        .select('*', { count: 'exact' });
 
       if (usageDeleteError) {
         console.error('Error deleting API key usage records:', usageDeleteError);
