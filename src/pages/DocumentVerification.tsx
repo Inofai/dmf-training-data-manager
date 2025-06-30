@@ -109,6 +109,19 @@ const DocumentVerification = () => {
     setEditedQAPairs(updatedQAPairs);
   };
 
+  const addNewQAPair = () => {
+    const newQAPair: QAPair = {
+      question: "",
+      answer: ""
+    };
+    setEditedQAPairs([...editedQAPairs, newQAPair]);
+  };
+
+  const removeQAPair = (index: number) => {
+    const updatedQAPairs = editedQAPairs.filter((_, i) => i !== index);
+    setEditedQAPairs(updatedQAPairs);
+  };
+
   const handleSourceLinkChange = (index: number, value: string) => {
     const updatedLinks = [...editedSourceLinks];
     updatedLinks[index] = value;
@@ -129,6 +142,17 @@ const DocumentVerification = () => {
 
   const handleSubmit = async () => {
     if (!documentData) return;
+
+    // Validate that all Q&A pairs have both question and answer
+    const hasEmptyFields = editedQAPairs.some(qa => !qa.question.trim() || !qa.answer.trim());
+    if (hasEmptyFields) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all question and answer fields before submitting.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -297,7 +321,7 @@ const DocumentVerification = () => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <span className="text-sm text-gray-500">Q&A Pairs Generated:</span>
-                <p className="text-lg font-semibold text-blue-600">{documentData.qa_count}</p>
+                <p className="text-lg font-semibold text-blue-600">{editedQAPairs.length}</p>
               </div>
               <div>
                 <span className="text-sm text-gray-500">Source Links:</span>
@@ -384,6 +408,16 @@ const DocumentVerification = () => {
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-xl">Question & Answer Pairs</CardTitle>
             <div className="flex gap-2">
+              {isEditing && (
+                <Button
+                  variant="outline"
+                  onClick={addNewQAPair}
+                  className="flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Q&A Pair
+                </Button>
+              )}
               <Button
                 variant={isEditing ? "default" : "outline"}
                 onClick={() => setIsEditing(!isEditing)}
@@ -397,8 +431,18 @@ const DocumentVerification = () => {
           <CardContent className="space-y-6">
             {editedQAPairs.map((qa, index) => (
               <div key={index} className="border rounded-lg p-4 bg-gray-50">
-                <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center justify-between mb-3">
                   <Badge variant="secondary">Q{index + 1}</Badge>
+                  {isEditing && editedQAPairs.length > 1 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeQAPair(index)}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
                 </div>
                 
                 <div className="space-y-3">
@@ -412,6 +456,7 @@ const DocumentVerification = () => {
                         onChange={(e) => handleQAChange(index, 'question', e.target.value)}
                         className="w-full"
                         rows={2}
+                        placeholder="Enter your question here..."
                       />
                     ) : (
                       <p className="text-gray-900 bg-white p-3 rounded border">{qa.question}</p>
@@ -428,6 +473,7 @@ const DocumentVerification = () => {
                         onChange={(e) => handleQAChange(index, 'answer', e.target.value)}
                         className="w-full"
                         rows={3}
+                        placeholder="Enter your answer here..."
                       />
                     ) : (
                       <p className="text-gray-900 bg-white p-3 rounded border">{qa.answer}</p>
@@ -436,6 +482,16 @@ const DocumentVerification = () => {
                 </div>
               </div>
             ))}
+            
+            {editedQAPairs.length === 0 && isEditing && (
+              <div className="text-center py-8">
+                <p className="text-gray-500 mb-4">No Q&A pairs yet. Add your first one!</p>
+                <Button onClick={addNewQAPair} className="flex items-center gap-2">
+                  <Plus className="w-4 h-4" />
+                  Add First Q&A Pair
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 
