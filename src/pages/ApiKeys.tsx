@@ -6,8 +6,7 @@ import Navigation from "@/components/Navigation";
 import ApiKeyManager from "@/components/ApiKeyManager";
 import ApiKeyUsageStats from "@/components/ApiKeyUsageStats";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Key, Info } from "lucide-react";
+import { Key } from "lucide-react";
 
 const ApiKeys = () => {
   const { user, loading, isAdmin, adminCheckComplete } = useAuth();
@@ -67,19 +66,10 @@ const ApiKeys = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-gray-600 mb-4">
+            <p className="text-gray-600">
               Manage API keys for your application. Add, view, and delete API keys as needed.
               Only administrators can access this functionality.
             </p>
-            
-            <Alert>
-              <Info className="h-4 w-4" />
-              <AlertDescription>
-                <strong>Important:</strong> The system now uses a default API key stored in the database. 
-                Make sure to set one API key as the default for the content processing feature to work.
-                The star icon indicates which key is currently set as default.
-              </AlertDescription>
-            </Alert>
           </CardContent>
         </Card>
 

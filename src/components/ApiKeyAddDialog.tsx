@@ -22,17 +22,16 @@ interface ApiKeyAddDialogProps {
 const ApiKeyAddDialog = ({ onApiKeyAdded }: ApiKeyAddDialogProps) => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [newKey, setNewKey] = useState({
-    name: "",
     key_value: "",
     description: ""
   });
   const { toast } = useToast();
 
   const handleAddApiKey = async () => {
-    if (!newKey.name.trim() || !newKey.key_value.trim()) {
+    if (!newKey.key_value.trim()) {
       toast({
         title: "Error",
-        description: "Name and key value are required.",
+        description: "API key value is required.",
         variant: "destructive",
       });
       return;
@@ -42,7 +41,7 @@ const ApiKeyAddDialog = ({ onApiKeyAdded }: ApiKeyAddDialogProps) => {
       const { error } = await supabase
         .from('api_keys')
         .insert({
-          name: newKey.name.trim(),
+          name: `API Key ${Date.now()}`, // Auto-generate a name
           key_value: newKey.key_value.trim(),
           description: newKey.description.trim() || null,
           created_by: (await supabase.auth.getUser()).data.user?.id
@@ -55,7 +54,7 @@ const ApiKeyAddDialog = ({ onApiKeyAdded }: ApiKeyAddDialogProps) => {
         description: "API key added successfully.",
       });
 
-      setNewKey({ name: "", key_value: "", description: "" });
+      setNewKey({ key_value: "", description: "" });
       setIsAddDialogOpen(false);
       onApiKeyAdded();
     } catch (error) {
@@ -81,15 +80,6 @@ const ApiKeyAddDialog = ({ onApiKeyAdded }: ApiKeyAddDialogProps) => {
           <DialogTitle>Add New API Key</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          <div>
-            <Label htmlFor="name">Name *</Label>
-            <Input
-              id="name"
-              value={newKey.name}
-              onChange={(e) => setNewKey({ ...newKey, name: e.target.value })}
-              placeholder="Enter API key name"
-            />
-          </div>
           <div>
             <Label htmlFor="key_value">API Key Value *</Label>
             <Input
