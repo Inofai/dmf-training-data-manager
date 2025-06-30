@@ -8,28 +8,46 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Key } from "lucide-react";
 
 const ApiKeys = () => {
-  const { user, loading, isAdmin } = useAuth();
+  const { user, loading, isAdmin, adminCheckComplete } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!loading && !user) {
-      navigate("/");
-    } else if (!loading && user && !isAdmin) {
-      navigate("/dashboard");
-    }
-  }, [user, loading, isAdmin, navigate]);
+    console.log('🔐 ApiKeys page - Auth state:', {
+      user: user?.id,
+      loading,
+      isAdmin,
+      adminCheckComplete
+    });
 
-  if (loading) {
+    // Only make navigation decisions when loading is complete AND admin check is complete
+    if (!loading && adminCheckComplete) {
+      if (!user) {
+        console.log('🚫 No user found, redirecting to home');
+        navigate("/");
+      } else if (!isAdmin) {
+        console.log('🚫 User is not admin, redirecting to dashboard');
+        navigate("/dashboard");
+      } else {
+        console.log('✅ User is admin, showing API keys page');
+      }
+    }
+  }, [user, loading, isAdmin, adminCheckComplete, navigate]);
+
+  // Show loading while auth is being determined OR admin check is in progress
+  if (loading || !adminCheckComplete) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-100 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Loading...</p>
+          <p className="mt-2 text-gray-600">
+            {loading ? 'Loading...' : 'Checking permissions...'}
+          </p>
         </div>
       </div>
     );
   }
 
+  // Don't render the page content if user is not authenticated or not admin
   if (!user || !isAdmin) {
     return null;
   }
