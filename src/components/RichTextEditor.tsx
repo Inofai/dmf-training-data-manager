@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { FileText } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import RichTextToolbar from "./RichTextToolbar";
 import RichTextEditorContent from "./RichTextEditorContent";
 import RichTextSubmissionControls from "./RichTextSubmissionControls";
@@ -94,6 +95,7 @@ const RichTextEditor = () => {
 
   const handleSubmit = async () => {
     const plainText = editorRef.current?.textContent || "";
+    const htmlContent = editorRef.current?.innerHTML || "";
     
     if (!plainText.trim()) {
       toast({
@@ -104,17 +106,61 @@ const RichTextEditor = () => {
       return;
     }
 
+    // Check if user is authenticated
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to process and submit documents.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     
-    // Simulate submission process
-    setTimeout(() => {
-      setIsSubmitting(false);
-      toast({
-        title: "Document Submitted",
-        description: "Your formatted text has been successfully submitted!",
+    try {
+      console.log('Submitting content for processing...');
+      
+      // Call the edge function to process the content
+      const { data, error } = await supabase.functions.invoke('process-training-content', {
+        body: { 
+          content: htmlContent // Send the full HTML content
+        }
       });
-      setContent(""); // Clear the content after submission
-    }, 1500);
+
+      if (error) {
+        console.error('Error processing content:', error);
+        throw error;
+      }
+
+      console.log('Processing result:', data);
+
+      if (data.success) {
+        toast({
+          title: "Document Processed Successfully!",
+          description: `Created "${data.title}" with ${data.qa_count} Q&A pairs${data.source_links?.length ? ` and ${data.source_links.length} source links` : ''}.`,
+        });
+        
+        // Clear the content after successful submission
+        setContent("");
+        if (editorRef.current) {
+          editorRef.current.innerHTML = "";
+        }
+      } else {
+        throw new Error(data.error || 'Processing failed');
+      }
+
+    } catch (error) {
+      console.error('Submission error:', error);
+      toast({
+        title: "Processing Failed",
+        description: error.message || "Failed to process the document. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const getCharacterCount = () => {
@@ -125,8 +171,8 @@ const RichTextEditor = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-100 p-4">
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Rich Text Editor</h1>
-          <p className="text-gray-600">Create and submit your formatted document</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">AI Training Content Processor</h1>
+          <p className="text-gray-600">Create content and let AI extract training questions and answers</p>
         </div>
 
         <Card className="shadow-xl border-0 bg-white">

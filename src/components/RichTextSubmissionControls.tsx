@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { Send } from "lucide-react";
+import { Send, Loader2 } from "lucide-react";
 
 interface RichTextSubmissionControlsProps {
   isSubmitting: boolean;
@@ -17,7 +17,7 @@ const RichTextSubmissionControls = ({
     <div className="border-t border-gray-200 p-6 bg-gray-50">
       <div className="flex justify-between items-center">
         <div className="text-sm text-gray-500">
-          Auto-saved • Last saved just now
+          {characterCount} characters • Ready to process with AI
         </div>
         <Button
           onClick={onSubmit}
@@ -26,13 +26,13 @@ const RichTextSubmissionControls = ({
         >
           {isSubmitting ? (
             <div className="flex items-center space-x-2">
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              <span>Submitting...</span>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>Processing with AI...</span>
             </div>
           ) : (
             <div className="flex items-center space-x-2">
               <Send className="w-4 h-4" />
-              <span>Submit Document</span>
+              <span>Process & Submit</span>
             </div>
           )}
         </Button>
