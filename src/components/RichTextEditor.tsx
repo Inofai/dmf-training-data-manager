@@ -1,13 +1,15 @@
+
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { FileText, Send, Bold, Italic, Underline } from "lucide-react";
+import { FileText, Send, Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight } from "lucide-react";
 import "./RichTextEditor.css";
 
 const RichTextEditor = () => {
   const [content, setContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [textDirection, setTextDirection] = useState<'ltr' | 'rtl'>('ltr');
   const editorRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -71,6 +73,23 @@ const RichTextEditor = () => {
     handleInput();
   };
 
+  const handleAlignment = (alignment: 'left' | 'center' | 'right') => {
+    const alignmentMap = {
+      left: 'justifyLeft',
+      center: 'justifyCenter',
+      right: 'justifyRight'
+    };
+    executeCommand(alignmentMap[alignment]);
+  };
+
+  const toggleTextDirection = () => {
+    const newDirection = textDirection === 'ltr' ? 'rtl' : 'ltr';
+    setTextDirection(newDirection);
+    if (editorRef.current) {
+      editorRef.current.style.direction = newDirection;
+    }
+  };
+
   const handleSubmit = async () => {
     const plainText = editorRef.current?.textContent || "";
     
@@ -117,6 +136,7 @@ const RichTextEditor = () => {
             
             {/* Functional Toolbar */}
             <div className="flex items-center gap-2 pt-4 border-t border-gray-100">
+              {/* Text Formatting */}
               <Button
                 variant="outline"
                 size="sm"
@@ -144,7 +164,53 @@ const RichTextEditor = () => {
               >
                 <Underline className="w-4 h-4" />
               </Button>
+              
               <div className="h-6 w-px bg-gray-300 mx-2" />
+              
+              {/* Text Alignment */}
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 w-8 p-0"
+                type="button"
+                onClick={() => handleAlignment('left')}
+              >
+                <AlignLeft className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 w-8 p-0"
+                type="button"
+                onClick={() => handleAlignment('center')}
+              >
+                <AlignCenter className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 w-8 p-0"
+                type="button"
+                onClick={() => handleAlignment('right')}
+              >
+                <AlignRight className="w-4 h-4" />
+              </Button>
+              
+              <div className="h-6 w-px bg-gray-300 mx-2" />
+              
+              {/* Text Direction */}
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 px-3"
+                type="button"
+                onClick={toggleTextDirection}
+              >
+                {textDirection === 'ltr' ? 'LTR' : 'RTL'}
+              </Button>
+              
+              <div className="h-6 w-px bg-gray-300 mx-2" />
+              
               <span className="text-sm text-gray-500">
                 {getCharacterCount()} characters
               </span>
@@ -163,6 +229,7 @@ const RichTextEditor = () => {
                   fontFamily: "system-ui, -apple-system, sans-serif",
                   fontSize: "16px",
                   lineHeight: "1.6",
+                  direction: textDirection,
                 }}
                 data-placeholder="Start typing your document here... You can paste formatted content from other applications."
                 suppressContentEditableWarning={true}
