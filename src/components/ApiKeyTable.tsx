@@ -11,7 +11,8 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { Eye, X } from "lucide-react";
+import { Eye } from "lucide-react";
+import DeleteApiKeyDialog from "./DeleteApiKeyDialog";
 
 interface ApiKey {
   id: string;
@@ -30,50 +31,60 @@ interface ApiKeyTableProps {
 
 const ApiKeyTable = ({ apiKeys, onApiKeyDeleted }: ApiKeyTableProps) => {
   const [visibleKeys, setVisibleKeys] = useState<Set<string>>(new Set());
+  const [deletingKeys, setDeletingKeys] = useState<Set<string>>(new Set());
   const { toast } = useToast();
 
   const handleDeleteApiKey = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this API key? This will also delete all usage history for this key.")) {
-      return;
-    }
-
+    setDeletingKeys(prev => new Set(prev).add(id));
+    
     try {
-      // First delete all usage records for this API key
-      const { error: usageDeleteError } = await supabase
+      console.log('Starting API key deletion process for ID:', id);
+      
+      // First, try to delete all usage records for this API key
+      const { error: usageDeleteError, count: deletedUsageCount } = await supabase
         .from('api_key_usage')
         .delete()
-        .eq('api_key_id', id);
+        .eq('api_key_id', id)
+        .select('*', { count: 'exact' });
 
       if (usageDeleteError) {
-        console.error('Error deleting API key usage:', usageDeleteError);
-        toast({
-          title: "Error",
-          description: "Failed to delete API key usage records.",
-          variant: "destructive",
-        });
-        return;
+        console.error('Error deleting API key usage records:', usageDeleteError);
+        throw new Error(`Failed to delete usage records: ${usageDeleteError.message}`);
       }
 
+      console.log(`Deleted ${deletedUsageCount || 0} usage records`);
+
       // Now delete the API key itself
-      const { error } = await supabase
+      const { error: keyDeleteError } = await supabase
         .from('api_keys')
         .delete()
         .eq('id', id);
 
-      if (error) throw error;
+      if (keyDeleteError) {
+        console.error('Error deleting API key:', keyDeleteError);
+        throw new Error(`Failed to delete API key: ${keyDeleteError.message}`);
+      }
 
+      console.log('API key deleted successfully');
+      
       toast({
         title: "Success",
-        description: "API key deleted successfully.",
+        description: "API key and all associated usage records deleted successfully.",
       });
 
       onApiKeyDeleted();
     } catch (error) {
-      console.error('Error deleting API key:', error);
+      console.error('Complete error during deletion:', error);
       toast({
         title: "Error",
-        description: "Failed to delete API key.",
+        description: error.message || "Failed to delete API key. Please try again.",
         variant: "destructive",
+      });
+    } finally {
+      setDeletingKeys(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(id);
+        return newSet;
       });
     }
   };
@@ -142,14 +153,13 @@ const ApiKeyTable = ({ apiKeys, onApiKeyDeleted }: ApiKeyTableProps) => {
               </span>
             </TableCell>
             <TableCell>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleDeleteApiKey(key.id)}
-                className="text-red-600 hover:text-red-800"
-              >
-                <X className="w-4 h-4" />
-              </Button>
+              {deletingKeys.has(key.id) ? (
+                <div className="text-sm text-gray-500">Deleting...</div>
+              ) : (
+                <DeleteApiKeyDialog 
+                  onConfirm={() => handleDeleteApiKey(key.id)}
+                />
+              )}
             </TableCell>
           </TableRow>
         ))}
