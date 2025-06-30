@@ -37,6 +37,7 @@ const ApiKeyManager = () => {
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [visibleKeys, setVisibleKeys] = useState<Set<string>>(new Set());
   const [newKey, setNewKey] = useState({
     name: "",
     key_value: "",
@@ -139,13 +140,15 @@ const ApiKeyManager = () => {
   };
 
   const toggleKeyVisibility = (id: string) => {
-    setApiKeys(keys => 
-      keys.map(key => 
-        key.id === id 
-          ? { ...key, showKey: !key.showKey } 
-          : key
-      )
-    );
+    setVisibleKeys(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
   };
 
   if (loading) {
@@ -238,7 +241,7 @@ const ApiKeyManager = () => {
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <span className="font-mono text-sm">
-                          {key.showKey ? key.key_value : '••••••••••••••••'}
+                          {visibleKeys.has(key.id) ? key.key_value : '••••••••••••••••'}
                         </span>
                         <Button
                           variant="ghost"
