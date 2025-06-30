@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -104,6 +103,12 @@ const DocumentVerification = () => {
 
     setIsSubmitting(true);
     try {
+      // Get current user to get their email
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.email) {
+        throw new Error("User email not found");
+      }
+
       // Update the document title if changed
       if (editedTitle !== documentData.title) {
         const { error: titleError } = await supabase
@@ -138,10 +143,13 @@ const DocumentVerification = () => {
         if (insertError) throw insertError;
       }
 
-      // Update document status to approved
+      // Update document status to approved and add submitter email
       const { error: statusError } = await supabase
         .from('training_documents')
-        .update({ status: 'approved' })
+        .update({ 
+          status: 'approved',
+          submitter_email: user.email
+        })
         .eq('id', documentData.id);
 
       if (statusError) throw statusError;

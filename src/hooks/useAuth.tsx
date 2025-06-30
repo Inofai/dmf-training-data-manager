@@ -3,6 +3,15 @@ import { useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
+const ADMIN_CACHE_KEY = 'admin_status_cache';
+const ADMIN_CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+
+interface AdminCache {
+  isAdmin: boolean;
+  timestamp: number;
+  userId: string;
+}
+
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -10,9 +19,62 @@ export const useAuth = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminCheckComplete, setAdminCheckComplete] = useState(false);
 
+  const getCachedAdminStatus = (userId: string): boolean | null => {
+    try {
+      const cached = localStorage.getItem(ADMIN_CACHE_KEY);
+      if (!cached) return null;
+
+      const adminCache: AdminCache = JSON.parse(cached);
+      const now = Date.now();
+
+      // Check if cache is valid (within 24 hours and for the same user)
+      if (
+        adminCache.userId === userId &&
+        (now - adminCache.timestamp) < ADMIN_CACHE_DURATION
+      ) {
+        console.log('✅ Using cached admin status:', adminCache.isAdmin);
+        return adminCache.isAdmin;
+      }
+
+      // Cache expired or different user
+      localStorage.removeItem(ADMIN_CACHE_KEY);
+      return null;
+    } catch (error) {
+      console.error('Error reading admin cache:', error);
+      localStorage.removeItem(ADMIN_CACHE_KEY);
+      return null;
+    }
+  };
+
+  const setCachedAdminStatus = (userId: string, isAdminStatus: boolean) => {
+    try {
+      const adminCache: AdminCache = {
+        isAdmin: isAdminStatus,
+        timestamp: Date.now(),
+        userId: userId
+      };
+      localStorage.setItem(ADMIN_CACHE_KEY, JSON.stringify(adminCache));
+      console.log('💾 Cached admin status for 24 hours:', isAdminStatus);
+    } catch (error) {
+      console.error('Error caching admin status:', error);
+    }
+  };
+
   const checkAdminRole = async (userId: string) => {
     console.log('🔍 Starting admin role check for user:', userId);
     setAdminCheckComplete(false);
+
+    // First check cache
+    const cachedStatus = getCachedAdminStatus(userId);
+    if (cachedStatus !== null) {
+      setIsAdmin(cachedStatus);
+      setAdminCheckComplete(true);
+      console.log('🏁 Admin role check completed (cached)');
+      return;
+    }
+
+    // Cache miss or expired, fetch from database
+    console.log('🌐 Fetching admin status from database (cache miss/expired)');
     
     try {
       // Add timeout to prevent hanging
@@ -32,7 +94,10 @@ export const useAuth = () => {
         setIsAdmin(false);
       } else {
         console.log('✅ Admin role check result:', data);
-        setIsAdmin(data || false);
+        const adminStatus = data || false;
+        setIsAdmin(adminStatus);
+        // Cache the result for 24 hours
+        setCachedAdminStatus(userId, adminStatus);
       }
     } catch (error) {
       console.error('❌ Exception during admin role check:', error);
@@ -61,6 +126,8 @@ export const useAuth = () => {
         } else {
           setIsAdmin(false);
           setAdminCheckComplete(true);
+          // Clear cache when user logs out
+          localStorage.removeItem(ADMIN_CACHE_KEY);
         }
         
         // Only set loading to false after everything is complete
