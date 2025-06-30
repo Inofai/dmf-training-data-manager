@@ -11,14 +11,10 @@ const ApiKeys = () => {
   const { user, loading, isAdmin } = useAuth();
   const navigate = useNavigate();
 
-  console.log('ApiKeys page - user:', user?.email, 'loading:', loading, 'isAdmin:', isAdmin);
-
   useEffect(() => {
     if (!loading && !user) {
-      console.log('Redirecting to / - no user');
       navigate("/");
     } else if (!loading && user && !isAdmin) {
-      console.log('Redirecting to dashboard - user not admin');
       navigate("/dashboard");
     }
   }, [user, loading, isAdmin, navigate]);
@@ -34,22 +30,8 @@ const ApiKeys = () => {
     );
   }
 
-  if (!user) {
-    console.log('No user, should redirect');
+  if (!user || !isAdmin) {
     return null;
-  }
-
-  if (!isAdmin) {
-    console.log('User is not admin, should redirect');
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-100 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-600">Access denied. Admin privileges required.</p>
-          <p className="text-gray-600">User: {user.email}</p>
-          <p className="text-gray-600">Admin status: {isAdmin ? 'Yes' : 'No'}</p>
-        </div>
-      </div>
-    );
   }
 
   return (
@@ -68,9 +50,6 @@ const ApiKeys = () => {
             <p className="text-gray-600">
               Manage API keys for your application. Add, view, and delete API keys as needed.
               Only administrators can access this functionality.
-            </p>
-            <p className="text-sm text-gray-500 mt-2">
-              Logged in as: {user.email} (Admin: {isAdmin ? 'Yes' : 'No'})
             </p>
           </CardContent>
         </Card>
