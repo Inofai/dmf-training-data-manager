@@ -11,7 +11,7 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { Eye, EyeOff, X } from "lucide-react";
+import { X } from "lucide-react";
 
 interface ApiKey {
   id: string;
@@ -27,7 +27,6 @@ interface ApiKeyTableProps {
 }
 
 const ApiKeyTable = ({ apiKey, onApiKeyDeleted }: ApiKeyTableProps) => {
-  const [isVisible, setIsVisible] = useState(false);
   const { toast } = useToast();
 
   const handleDeleteApiKey = async () => {
@@ -80,18 +79,9 @@ const ApiKeyTable = ({ apiKey, onApiKeyDeleted }: ApiKeyTableProps) => {
       <TableBody>
         <TableRow>
           <TableCell>
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-sm">
-                {isVisible ? apiKey.key_value : '••••••••••••••••••••••••••••••••••••••••'}
-              </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsVisible(!isVisible)}
-              >
-                {isVisible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </Button>
-            </div>
+            <span className="font-mono text-sm">
+              ••••••••••••••••••••••••••••••••••••••••
+            </span>
           </TableCell>
           <TableCell>{apiKey.description || '-'}</TableCell>
           <TableCell>
