@@ -1,11 +1,22 @@
+
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import Navigation from "@/components/Navigation";
+import DocumentStats from "@/components/DocumentStats";
+import DocumentStatusActions from "@/components/DocumentStatusActions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,11 +41,14 @@ interface TrainingDocument {
   training_data: { id: string; question: string; answer: string }[];
 }
 
+const ITEMS_PER_PAGE = 10;
+
 const Dashboard = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [documents, setDocuments] = useState<TrainingDocument[]>([]);
   const [documentsLoading, setDocumentsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -82,8 +96,8 @@ const Dashboard = () => {
   };
 
   const handleDocumentClick = (doc: TrainingDocument, event: React.MouseEvent) => {
-    // Don't navigate if clicking on delete button or its parent
-    if ((event.target as HTMLElement).closest('[data-delete-button]')) {
+    // Don't navigate if clicking on action buttons
+    if ((event.target as HTMLElement).closest('[data-delete-button], [data-action-button]')) {
       return;
     }
 
@@ -143,6 +157,16 @@ const Dashboard = () => {
     }
   };
 
+  // Pagination logic
+  const totalPages = Math.ceil(documents.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const currentDocuments = documents.slice(startIndex, endIndex);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-100 flex items-center justify-center">
@@ -168,6 +192,8 @@ const Dashboard = () => {
           <p className="text-gray-600">View and manage your processed training documents</p>
         </div>
 
+        <DocumentStats documents={documents} />
+
         <Card className="shadow-xl border-0 bg-white">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -188,84 +214,128 @@ const Dashboard = () => {
                 <p className="text-gray-600">Create your first training document using the editor.</p>
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Title</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Q&A Pairs</TableHead>
-                    <TableHead>Source Links</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {documents.map((doc) => (
-                    <TableRow 
-                      key={doc.id}
-                      className="cursor-pointer hover:bg-blue-50 transition-colors"
-                      onClick={(e) => handleDocumentClick(doc, e)}
-                    >
-                      <TableCell className="font-medium">{doc.title}</TableCell>
-                      <TableCell>
-                        <Badge className={getStatusColor(doc.status)}>
-                          {doc.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <MessageSquare className="w-4 h-4 text-blue-600" />
-                          {doc.training_data?.length || 0}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <LinkIcon className="w-4 h-4 text-green-600" />
-                          {doc.source_links?.length || 0}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {new Date(doc.created_at).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              data-delete-button
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Delete Document</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Are you sure you want to delete "{doc.title}"? This action cannot be undone.
-                                All associated Q&A pairs will also be deleted.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  deleteDocument(doc.id);
-                                }}
-                                className="bg-red-600 hover:bg-red-700"
-                              >
-                                Delete Document
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </TableCell>
+              <>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Title</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Q&A Pairs</TableHead>
+                      <TableHead>Source Links</TableHead>
+                      <TableHead>Created</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {currentDocuments.map((doc) => (
+                      <TableRow 
+                        key={doc.id}
+                        className="cursor-pointer hover:bg-blue-50 transition-colors"
+                        onClick={(e) => handleDocumentClick(doc, e)}
+                      >
+                        <TableCell className="font-medium">{doc.title}</TableCell>
+                        <TableCell>
+                          <Badge className={getStatusColor(doc.status)}>
+                            {doc.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <MessageSquare className="w-4 h-4 text-blue-600" />
+                            {doc.training_data?.length || 0}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <LinkIcon className="w-4 h-4 text-green-600" />
+                            {doc.source_links?.length || 0}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {new Date(doc.created_at).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <DocumentStatusActions 
+                              documentId={doc.id}
+                              currentStatus={doc.status}
+                              onStatusUpdate={fetchDocuments}
+                            />
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  data-delete-button
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Document</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to delete "{doc.title}"? This action cannot be undone.
+                                    All associated Q&A pairs will also be deleted.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      deleteDocument(doc.id);
+                                    }}
+                                    className="bg-red-600 hover:bg-red-700"
+                                  >
+                                    Delete Document
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="flex justify-center mt-6">
+                    <Pagination>
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious 
+                            onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+                            className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                          />
+                        </PaginationItem>
+                        
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                          <PaginationItem key={page}>
+                            <PaginationLink
+                              onClick={() => handlePageChange(page)}
+                              isActive={currentPage === page}
+                              className="cursor-pointer"
+                            >
+                              {page}
+                            </PaginationLink>
+                          </PaginationItem>
+                        ))}
+                        
+                        <PaginationItem>
+                          <PaginationNext 
+                            onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+                            className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                          />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
+                  </div>
+                )}
+              </>
             )}
           </CardContent>
         </Card>
