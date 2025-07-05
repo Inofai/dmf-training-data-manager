@@ -41,7 +41,7 @@ interface TrainingDocument {
   training_data: { id: string; question: string; answer: string }[];
 }
 
-const ITEMS_PER_PAGE = 10;
+const ITEMS_PER_PAGE = 100;
 
 const Dashboard = () => {
   const { user, loading } = useAuth();
