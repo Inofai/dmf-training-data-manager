@@ -69,12 +69,13 @@ const Dashboard = () => {
           status,
           created_at,
           source_links,
-          training_data (
+          training_data!inner (
             id,
             question,
             answer
           )
         `)
+        .eq('training_data.is_current', true)
         .order('created_at', { ascending: false });
 
       if (error) {

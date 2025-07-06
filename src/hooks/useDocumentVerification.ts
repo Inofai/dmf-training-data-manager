@@ -5,8 +5,11 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
 interface QAPair {
+  id?: string;
   question: string;
   answer: string;
+  version?: number;
+  change_reason?: string;
 }
 
 interface DocumentData {
@@ -39,8 +42,9 @@ export const useDocumentVerification = () => {
     try {
       const { data, error } = await supabase
         .from('training_data')
-        .select('question, answer')
+        .select('id, question, answer, version')
         .eq('training_document_id', docId)
+        .eq('is_current', true)
         .order('created_at', { ascending: true });
 
       if (error) throw error;
@@ -135,28 +139,61 @@ export const useDocumentVerification = () => {
         if (updateError) throw updateError;
       }
 
-      // Update Q&A pairs if editing
+      // Handle Q&A pairs updates with change tracking
       if (isEditing) {
-        // Delete existing Q&A pairs
-        const { error: deleteError } = await supabase
-          .from('training_data')
-          .delete()
-          .eq('training_document_id', documentData.id);
+        for (const [index, qa] of editedQAPairs.entries()) {
+          if (qa.id) {
+            // Update existing Q&A pair with version tracking
+            const { error: updateError } = await supabase
+              .from('training_data')
+              .update({
+                question: qa.question,
+                answer: qa.answer,
+                version: (qa.version || 1) + 1,
+                change_reason: qa.change_reason || 'Updated during verification',
+                changed_by: user.id,
+                changed_at: new Date().toISOString()
+              })
+              .eq('id', qa.id);
 
-        if (deleteError) throw deleteError;
+            if (updateError) throw updateError;
+          } else {
+            // Insert new Q&A pair
+            const { error: insertError } = await supabase
+              .from('training_data')
+              .insert({
+                training_document_id: documentData.id,
+                question: qa.question,
+                answer: qa.answer,
+                version: 1,
+                is_current: true
+              });
 
-        // Insert updated Q&A pairs
-        const trainingDataInserts = editedQAPairs.map((qa) => ({
-          training_document_id: documentData.id,
-          question: qa.question,
-          answer: qa.answer
-        }));
+            if (insertError) throw insertError;
+          }
+        }
 
-        const { error: insertError } = await supabase
-          .from('training_data')
-          .insert(trainingDataInserts);
+        // Handle deleted Q&A pairs by marking them as not current
+        const originalQAPairs = documentData.qa_pairs || [];
+        const deletedPairs = originalQAPairs.filter(
+          original => !editedQAPairs.some(edited => edited.id === original.id)
+        );
 
-        if (insertError) throw insertError;
+        for (const deletedPair of deletedPairs) {
+          if (deletedPair.id) {
+            const { error: deleteError } = await supabase
+              .from('training_data')
+              .update({
+                is_current: false,
+                change_reason: 'Removed during verification',
+                changed_by: user.id,
+                changed_at: new Date().toISOString()
+              })
+              .eq('id', deletedPair.id);
+
+            if (deleteError) throw deleteError;
+          }
+        }
       }
 
       // Update document status to approved and add submitter email

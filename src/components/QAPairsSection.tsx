@@ -5,8 +5,11 @@ import { Edit, Plus } from "lucide-react";
 import QAPairCard from "./QAPairCard";
 
 interface QAPair {
+  id?: string;
   question: string;
   answer: string;
+  version?: number;
+  change_reason?: string;
 }
 
 interface QAPairsSectionProps {
@@ -14,7 +17,7 @@ interface QAPairsSectionProps {
   isEditing: boolean;
   onToggleEditing: () => void;
   onAddQAPair: () => void;
-  onQAChange: (index: number, field: 'question' | 'answer', value: string) => void;
+  onQAChange: (index: number, field: 'question' | 'answer' | 'change_reason', value: string) => void;
   onRemoveQAPair: (index: number) => void;
 }
 
@@ -54,13 +57,14 @@ const QAPairsSection = ({
       <CardContent className="space-y-6">
         {qaPairs.map((qa, index) => (
           <QAPairCard
-            key={index}
+            key={qa.id || index}
             qa={qa}
             index={index}
             isEditing={isEditing}
             canDelete={qaPairs.length > 1}
             onQuestionChange={(value) => onQAChange(index, 'question', value)}
             onAnswerChange={(value) => onQAChange(index, 'answer', value)}
+            onChangeReasonChange={(value) => onQAChange(index, 'change_reason', value)}
             onRemove={() => onRemoveQAPair(index)}
           />
         ))}

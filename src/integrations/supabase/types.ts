@@ -39,31 +39,100 @@ export type Database = {
       training_data: {
         Row: {
           answer: string
+          change_reason: string | null
+          changed_at: string | null
+          changed_by: string | null
           created_at: string | null
           id: string
+          is_current: boolean
+          parent_id: string | null
           question: string
           training_document_id: string
+          version: number
         }
         Insert: {
           answer: string
+          change_reason?: string | null
+          changed_at?: string | null
+          changed_by?: string | null
           created_at?: string | null
           id?: string
+          is_current?: boolean
+          parent_id?: string | null
           question: string
           training_document_id: string
+          version?: number
         }
         Update: {
           answer?: string
+          change_reason?: string | null
+          changed_at?: string | null
+          changed_by?: string | null
           created_at?: string | null
           id?: string
+          is_current?: boolean
+          parent_id?: string | null
           question?: string
           training_document_id?: string
+          version?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_training_data_parent"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "training_data"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "training_data_training_document_id_fkey"
             columns: ["training_document_id"]
             isOneToOne: false
             referencedRelation: "training_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_data_history: {
+        Row: {
+          answer: string
+          change_reason: string | null
+          changed_at: string
+          changed_by: string | null
+          created_at: string
+          id: string
+          question: string
+          training_data_id: string
+          version: number
+        }
+        Insert: {
+          answer: string
+          change_reason?: string | null
+          changed_at?: string
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          question: string
+          training_data_id: string
+          version: number
+        }
+        Update: {
+          answer?: string
+          change_reason?: string | null
+          changed_at?: string
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          question?: string
+          training_data_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_history_training_data"
+            columns: ["training_data_id"]
+            isOneToOne: false
+            referencedRelation: "training_data"
             referencedColumns: ["id"]
           },
         ]
@@ -140,6 +209,17 @@ export type Database = {
       get_api_key: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      get_qa_history: {
+        Args: { qa_id: string }
+        Returns: {
+          version: number
+          question: string
+          answer: string
+          change_reason: string
+          changed_by: string
+          changed_at: string
+        }[]
       }
       has_role: {
         Args: {
