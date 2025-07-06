@@ -1,16 +1,16 @@
-
 import { useAuth } from "@/hooks/useAuth";
 import { useDocumentVerification } from "@/hooks/useDocumentVerification";
 import Navigation from "@/components/Navigation";
 import DocumentVerificationHeader from "@/components/DocumentVerificationHeader";
 import DocumentOverview from "@/components/DocumentOverview";
 import QAPairsSection from "@/components/QAPairsSection";
+import DocumentStatusActions from "@/components/DocumentStatusActions";
 import { Button } from "@/components/ui/button";
-import { Send } from "lucide-react";
+import { Save } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const DocumentVerification = () => {
-  const { user, loading } = useAuth();
+  const { user, loading, isAdmin } = useAuth();
   const navigate = useNavigate();
   const {
     documentData,
@@ -30,7 +30,7 @@ const DocumentVerification = () => {
     handleSourceLinkChange,
     addSourceLink,
     removeSourceLink,
-    handleSubmit
+    handleSave
   } = useDocumentVerification();
 
   if (loading) {
@@ -105,21 +105,32 @@ const DocumentVerification = () => {
           onRemoveQAPair={removeQAPair}
         />
 
-        <div className="mt-6 flex justify-center">
+        <div className="mt-6 flex justify-center gap-4">
           <Button
-            onClick={handleSubmit}
+            onClick={handleSave}
             disabled={isSubmitting}
-            className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 text-lg flex items-center gap-2"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg flex items-center gap-2"
           >
             {isSubmitting ? (
-              "Submitting..."
+              "Saving..."
             ) : (
               <>
-                <Send className="w-5 h-5" />
-                Approve & Submit Document
+                <Save className="w-5 h-5" />
+                Save Changes
               </>
             )}
           </Button>
+
+          {isAdmin && documentData && (
+            <DocumentStatusActions
+              documentId={documentData.id}
+              currentStatus={documentData.status || 'pending'}
+              onStatusUpdate={() => {
+                // Refresh the page or update state as needed
+                window.location.reload();
+              }}
+            />
+          )}
         </div>
       </div>
     </div>

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -18,6 +17,7 @@ interface DocumentData {
   qa_count: number;
   source_links: string[];
   qa_pairs: QAPair[];
+  status?: string;
 }
 
 export const useDocumentVerification = () => {
@@ -38,28 +38,43 @@ export const useDocumentVerification = () => {
   const qaCount = searchParams.get('qa_count');
   const sourceLinks = searchParams.get('source_links');
 
-  const fetchQAPairs = async (docId: string) => {
+  const fetchDocumentData = async (docId: string) => {
     try {
-      const { data, error } = await supabase
+      const { data: docData, error: docError } = await supabase
+        .from('training_documents')
+        .select('*')
+        .eq('id', docId)
+        .single();
+
+      if (docError) throw docError;
+
+      const { data: qaData, error: qaError } = await supabase
         .from('training_data')
         .select('id, question, answer, version')
         .eq('training_document_id', docId)
         .eq('is_current', true)
         .order('created_at', { ascending: true });
 
-      if (error) throw error;
+      if (qaError) throw qaError;
 
-      const qaPairs = data || [];
-      setEditedQAPairs(qaPairs);
-      
-      if (documentData) {
-        setDocumentData(prev => prev ? { ...prev, qa_pairs: qaPairs } : null);
-      }
+      const updatedDocData: DocumentData = {
+        id: docData.id,
+        title: docData.title,
+        qa_count: qaData?.length || 0,
+        source_links: docData.source_links || [],
+        qa_pairs: qaData || [],
+        status: docData.status
+      };
+
+      setDocumentData(updatedDocData);
+      setEditedTitle(docData.title);
+      setEditedSourceLinks(docData.source_links || []);
+      setEditedQAPairs(qaData || []);
     } catch (error) {
-      console.error('Error fetching Q&A pairs:', error);
+      console.error('Error fetching document data:', error);
       toast({
         title: "Error",
-        description: "Failed to load Q&A pairs.",
+        description: "Failed to load document data.",
         variant: "destructive",
       });
     } finally {
@@ -67,7 +82,7 @@ export const useDocumentVerification = () => {
     }
   };
 
-  const handleQAChange = (index: number, field: 'question' | 'answer', value: string) => {
+  const handleQAChange = (index: number, field: 'question' | 'answer' | 'change_reason', value: string) => {
     const updatedQAPairs = [...editedQAPairs];
     updatedQAPairs[index] = { ...updatedQAPairs[index], [field]: value };
     setEditedQAPairs(updatedQAPairs);
@@ -104,15 +119,14 @@ export const useDocumentVerification = () => {
     setEditedSourceLinks(updatedLinks);
   };
 
-  const handleSubmit = async () => {
+  const handleSave = async () => {
     if (!documentData) return;
 
-    // Validate that all Q&A pairs have both question and answer
     const hasEmptyFields = editedQAPairs.some(qa => !qa.question.trim() || !qa.answer.trim());
     if (hasEmptyFields) {
       toast({
         title: "Validation Error",
-        description: "Please fill in all question and answer fields before submitting.",
+        description: "Please fill in all question and answer fields before saving.",
         variant: "destructive",
       });
       return;
@@ -120,7 +134,6 @@ export const useDocumentVerification = () => {
 
     setIsSubmitting(true);
     try {
-      // Get current user to get their email
       const { data: { user } } = await supabase.auth.getUser();
       if (!user?.email) {
         throw new Error("User email not found");
@@ -196,28 +209,18 @@ export const useDocumentVerification = () => {
         }
       }
 
-      // Update document status to approved and add submitter email
-      const { error: statusError } = await supabase
-        .from('training_documents')
-        .update({ 
-          status: 'approved',
-          submitter_email: user.email
-        })
-        .eq('id', documentData.id);
-
-      if (statusError) throw statusError;
-
       toast({
-        title: "Document Approved!",
-        description: "The training document has been successfully approved and is now ready for use.",
+        title: "Changes Saved!",
+        description: "All changes have been saved successfully.",
       });
 
-      navigate("/dashboard");
+      // Refresh the document data
+      await fetchDocumentData(documentData.id);
     } catch (error) {
-      console.error('Error submitting document:', error);
+      console.error('Error saving changes:', error);
       toast({
-        title: "Submission Failed",
-        description: "Failed to submit the document. Please try again.",
+        title: "Save Failed",
+        description: "Failed to save changes. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -240,8 +243,8 @@ export const useDocumentVerification = () => {
       setEditedTitle(title);
       setEditedSourceLinks(initialData.source_links);
       
-      // Then fetch the Q&A pairs from the database
-      fetchQAPairs(documentId);
+      // Then fetch the complete document data from the database
+      fetchDocumentData(documentId);
     } else {
       toast({
         title: "Error",
@@ -270,6 +273,6 @@ export const useDocumentVerification = () => {
     handleSourceLinkChange,
     addSourceLink,
     removeSourceLink,
-    handleSubmit
+    handleSave
   };
 };
