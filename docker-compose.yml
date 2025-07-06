@@ -1,0 +1,8 @@
+version: '3.8'
+services:
+  vite-react:
+    build: .
+    container_name: dmf-training-data-manager
+    ports:
+      - "8888:8888"
+    restart: always
