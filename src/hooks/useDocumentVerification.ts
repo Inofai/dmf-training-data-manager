@@ -122,6 +122,10 @@ export const useDocumentVerification = () => {
   const handleSave = async () => {
     if (!documentData) return;
 
+    console.log('Starting save operation...');
+    console.log('Document data:', documentData);
+    console.log('Edited Q&A pairs:', editedQAPairs);
+
     const hasEmptyFields = editedQAPairs.some(qa => !qa.question.trim() || !qa.answer.trim());
     if (hasEmptyFields) {
       toast({
@@ -135,12 +139,18 @@ export const useDocumentVerification = () => {
     setIsSubmitting(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user?.email) {
-        throw new Error("User email not found");
+      if (!user?.id) {
+        throw new Error("User ID not found");
       }
 
+      console.log('User ID:', user.id);
+
       // Update the document title and source links if changed
-      if (editedTitle !== documentData.title || JSON.stringify(editedSourceLinks.sort()) !== JSON.stringify(documentData.source_links.sort())) {
+      const titleChanged = editedTitle !== documentData.title;
+      const sourceLinksChanged = JSON.stringify(editedSourceLinks.sort()) !== JSON.stringify(documentData.source_links.sort());
+      
+      if (titleChanged || sourceLinksChanged) {
+        console.log('Updating document title/source links...');
         const { error: updateError } = await supabase
           .from('training_documents')
           .update({ 
@@ -150,62 +160,80 @@ export const useDocumentVerification = () => {
           .eq('id', documentData.id);
 
         if (updateError) throw updateError;
+        console.log('Document updated successfully');
       }
 
-      // Handle Q&A pairs updates with change tracking
-      if (isEditing) {
-        for (const [index, qa] of editedQAPairs.entries()) {
-          if (qa.id) {
-            // Update existing Q&A pair with version tracking
-            const { error: updateError } = await supabase
-              .from('training_data')
-              .update({
-                question: qa.question,
-                answer: qa.answer,
-                version: (qa.version || 1) + 1,
-                change_reason: qa.change_reason || 'Updated during verification',
-                changed_by: user.id,
-                changed_at: new Date().toISOString()
-              })
-              .eq('id', qa.id);
+      // Handle Q&A pairs updates with change tracking - always save regardless of editing state
+      console.log('Processing Q&A pairs...');
+      for (const [index, qa] of editedQAPairs.entries()) {
+        console.log(`Processing Q&A pair ${index}:`, qa);
+        
+        if (qa.id) {
+          // Update existing Q&A pair with version tracking
+          console.log('Updating existing Q&A pair...');
+          const { error: updateError } = await supabase
+            .from('training_data')
+            .update({
+              question: qa.question,
+              answer: qa.answer,
+              version: (qa.version || 1) + 1,
+              change_reason: qa.change_reason || 'Updated during verification',
+              changed_by: user.id,
+              changed_at: new Date().toISOString()
+            })
+            .eq('id', qa.id);
 
-            if (updateError) throw updateError;
-          } else {
-            // Insert new Q&A pair
-            const { error: insertError } = await supabase
-              .from('training_data')
-              .insert({
-                training_document_id: documentData.id,
-                question: qa.question,
-                answer: qa.answer,
-                version: 1,
-                is_current: true
-              });
-
-            if (insertError) throw insertError;
+          if (updateError) {
+            console.error('Error updating Q&A pair:', updateError);
+            throw updateError;
           }
+          console.log('Q&A pair updated successfully');
+        } else {
+          // Insert new Q&A pair
+          console.log('Inserting new Q&A pair...');
+          const { error: insertError } = await supabase
+            .from('training_data')
+            .insert({
+              training_document_id: documentData.id,
+              question: qa.question,
+              answer: qa.answer,
+              version: 1,
+              is_current: true
+            });
+
+          if (insertError) {
+            console.error('Error inserting Q&A pair:', insertError);
+            throw insertError;
+          }
+          console.log('Q&A pair inserted successfully');
         }
+      }
 
-        // Handle deleted Q&A pairs by marking them as not current
-        const originalQAPairs = documentData.qa_pairs || [];
-        const deletedPairs = originalQAPairs.filter(
-          original => !editedQAPairs.some(edited => edited.id === original.id)
-        );
+      // Handle deleted Q&A pairs by marking them as not current
+      const originalQAPairs = documentData.qa_pairs || [];
+      const deletedPairs = originalQAPairs.filter(
+        original => !editedQAPairs.some(edited => edited.id === original.id)
+      );
 
-        for (const deletedPair of deletedPairs) {
-          if (deletedPair.id) {
-            const { error: deleteError } = await supabase
-              .from('training_data')
-              .update({
-                is_current: false,
-                change_reason: 'Removed during verification',
-                changed_by: user.id,
-                changed_at: new Date().toISOString()
-              })
-              .eq('id', deletedPair.id);
+      console.log('Deleted pairs:', deletedPairs);
+      for (const deletedPair of deletedPairs) {
+        if (deletedPair.id) {
+          console.log('Marking pair as not current:', deletedPair.id);
+          const { error: deleteError } = await supabase
+            .from('training_data')
+            .update({
+              is_current: false,
+              change_reason: 'Removed during verification',
+              changed_by: user.id,
+              changed_at: new Date().toISOString()
+            })
+            .eq('id', deletedPair.id);
 
-            if (deleteError) throw deleteError;
+          if (deleteError) {
+            console.error('Error marking pair as not current:', deleteError);
+            throw deleteError;
           }
+          console.log('Pair marked as not current successfully');
         }
       }
 
