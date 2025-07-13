@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Pagination,
   PaginationContent,
@@ -30,7 +31,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { FileText, MessageSquare, Link as LinkIcon, Trash2 } from "lucide-react";
+import { FileText, MessageSquare, Link as LinkIcon, Trash2, User } from "lucide-react";
 
 interface TrainingDocument {
   id: string;
@@ -38,6 +39,8 @@ interface TrainingDocument {
   status: string;
   created_at: string;
   source_links: string[];
+  submitter_id: string;
+  submitter_email: string | null;
   training_data: { id: string; question: string; answer: string }[];
 }
 
@@ -69,6 +72,8 @@ const Dashboard = () => {
           status,
           created_at,
           source_links,
+          submitter_id,
+          submitter_email,
           training_data!inner (
             id,
             question,
@@ -158,6 +163,20 @@ const Dashboard = () => {
     }
   };
 
+  const getSubmitterInitials = (email: string | null) => {
+    if (!email) return 'U';
+    const parts = email.split('@')[0].split('.');
+    if (parts.length >= 2) {
+      return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    }
+    return email.substring(0, 2).toUpperCase();
+  };
+
+  const formatSubmitterEmail = (email: string | null) => {
+    if (!email) return 'Unknown User';
+    return email;
+  };
+
   // Pagination logic
   const totalPages = Math.ceil(documents.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -187,7 +206,7 @@ const Dashboard = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-100">
       <Navigation />
       
-      <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="text-center mb-6">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Training Data Dashboard</h1>
           <p className="text-gray-600">View and manage your processed training documents</p>
@@ -216,91 +235,117 @@ const Dashboard = () => {
               </div>
             ) : (
               <>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Title</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Q&A Pairs</TableHead>
-                      <TableHead>Source Links</TableHead>
-                      <TableHead>Created</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {currentDocuments.map((doc) => (
-                      <TableRow 
-                        key={doc.id}
-                        className="cursor-pointer hover:bg-blue-50 transition-colors"
-                        onClick={(e) => handleDocumentClick(doc, e)}
-                      >
-                        <TableCell className="font-medium">{doc.title}</TableCell>
-                        <TableCell>
-                          <Badge className={getStatusColor(doc.status)}>
-                            {doc.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            <MessageSquare className="w-4 h-4 text-blue-600" />
-                            {doc.training_data?.length || 0}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            <LinkIcon className="w-4 h-4 text-green-600" />
-                            {doc.source_links?.length || 0}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {new Date(doc.created_at).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <DocumentStatusActions 
-                              documentId={doc.id}
-                              currentStatus={doc.status}
-                              onStatusUpdate={fetchDocuments}
-                            />
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  data-delete-button
-                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete Document</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Are you sure you want to delete "{doc.title}"? This action cannot be undone.
-                                    All associated Q&A pairs will also be deleted.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      deleteDocument(doc.id);
-                                    }}
-                                    className="bg-red-600 hover:bg-red-700"
-                                  >
-                                    Delete Document
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </div>
-                        </TableCell>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Title</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Q&A Pairs</TableHead>
+                        <TableHead>Source Links</TableHead>
+                        <TableHead>Submitted By</TableHead>
+                        <TableHead>Created</TableHead>
+                        <TableHead>Actions</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {currentDocuments.map((doc) => (
+                        <TableRow 
+                          key={doc.id}
+                          className="cursor-pointer hover:bg-blue-50 transition-colors"
+                          onClick={(e) => handleDocumentClick(doc, e)}
+                        >
+                          <TableCell className="font-medium max-w-xs">
+                            <div className="truncate" title={doc.title}>
+                              {doc.title}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={getStatusColor(doc.status)}>
+                              {doc.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              <MessageSquare className="w-4 h-4 text-blue-600" />
+                              {doc.training_data?.length || 0}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              <LinkIcon className="w-4 h-4 text-green-600" />
+                              {doc.source_links?.length || 0}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Avatar className="w-8 h-8">
+                                <AvatarFallback className="bg-blue-100 text-blue-600 text-xs">
+                                  {getSubmitterInitials(doc.submitter_email)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex flex-col">
+                                <span className="text-sm font-medium text-gray-900">
+                                  {formatSubmitterEmail(doc.submitter_email)}
+                                </span>
+                                <span className="text-xs text-gray-500">
+                                  ID: {doc.submitter_id.substring(0, 8)}...
+                                </span>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm">
+                              {new Date(doc.created_at).toLocaleDateString()}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <DocumentStatusActions 
+                                documentId={doc.id}
+                                currentStatus={doc.status}
+                                onStatusUpdate={fetchDocuments}
+                              />
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    data-delete-button
+                                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete Document</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Are you sure you want to delete "{doc.title}"? This action cannot be undone.
+                                      All associated Q&A pairs will also be deleted.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        deleteDocument(doc.id);
+                                      }}
+                                      className="bg-red-600 hover:bg-red-700"
+                                    >
+                                      Delete Document
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
 
                 {/* Pagination */}
                 {totalPages > 1 && (

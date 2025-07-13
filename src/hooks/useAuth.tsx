@@ -79,7 +79,7 @@ export const useAuth = () => {
     try {
       // Add timeout to prevent hanging
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Admin check timeout')), 5000)
+        setTimeout(() => reject(new Error('Admin check timeout')), 10000)
       );
       
       const adminCheckPromise = supabase.rpc('has_role', {
@@ -110,19 +110,28 @@ export const useAuth = () => {
   };
 
   useEffect(() => {
-    console.log('🚀 Setting up auth state listener');
+    console.log('🚀 Initializing auth state management');
+    let isInitialized = false;
     
-    // Set up auth state listener
+    // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('🔄 Auth state changed:', event, session?.user?.id);
+        console.log('🔄 Auth state changed:', event, 'User ID:', session?.user?.id);
+        
+        // Prevent duplicate initial session processing
+        if (event === 'INITIAL_SESSION' && isInitialized) {
+          console.log('⏭️ Skipping duplicate INITIAL_SESSION event');
+          return;
+        }
         
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Check admin role immediately when user is authenticated
-          await checkAdminRole(session.user.id);
+          // Use setTimeout to prevent blocking the auth state change
+          setTimeout(async () => {
+            await checkAdminRole(session.user.id);
+          }, 0);
         } else {
           setIsAdmin(false);
           setAdminCheckComplete(true);
@@ -130,16 +139,18 @@ export const useAuth = () => {
           localStorage.removeItem(ADMIN_CACHE_KEY);
         }
         
-        // Only set loading to false after everything is complete
-        setLoading(false);
+        // Set loading to false after processing
+        if (!isInitialized) {
+          setLoading(false);
+          isInitialized = true;
+        }
       }
     );
 
-    // Check for existing session
+    // Get existing session
     const initializeAuth = async () => {
-      console.log('🔍 Checking for existing session');
-      
       try {
+        console.log('🔍 Checking for existing session on initialization');
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
@@ -148,20 +159,25 @@ export const useAuth = () => {
           setAdminCheckComplete(true);
           return;
         }
-        
-        console.log('📋 Existing session found:', session?.user?.id);
-        
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          await checkAdminRole(session.user.id);
-        } else {
-          setIsAdmin(false);
-          setAdminCheckComplete(true);
+
+        // Only process if not already handled by onAuthStateChange
+        if (!isInitialized) {
+          console.log('📋 Processing existing session:', session?.user?.id);
+          setSession(session);
+          setUser(session?.user ?? null);
+          
+          if (session?.user) {
+            setTimeout(async () => {
+              await checkAdminRole(session.user.id);
+            }, 0);
+          } else {
+            setIsAdmin(false);
+            setAdminCheckComplete(true);
+          }
+          
+          setLoading(false);
+          isInitialized = true;
         }
-        
-        setLoading(false);
       } catch (error) {
         console.error('❌ Exception during auth initialization:', error);
         setLoading(false);
@@ -177,15 +193,18 @@ export const useAuth = () => {
     };
   }, []);
 
-  // Log state changes for debugging
+  // Enhanced logging for debugging
   useEffect(() => {
     console.log('📊 Auth state update:', {
-      user: user?.id,
+      userId: user?.id,
+      userEmail: user?.email,
+      hasSession: !!session,
       loading,
       isAdmin,
-      adminCheckComplete
+      adminCheckComplete,
+      sessionExpiry: session?.expires_at ? new Date(session.expires_at * 1000).toISOString() : 'N/A'
     });
-  }, [user, loading, isAdmin, adminCheckComplete]);
+  }, [user, session, loading, isAdmin, adminCheckComplete]);
 
   return {
     user,
