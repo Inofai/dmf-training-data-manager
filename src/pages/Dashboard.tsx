@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -41,6 +40,11 @@ interface TrainingDocument {
   source_links: string[];
   submitter_id: string;
   submitter_email: string | null;
+  submitter_profile: {
+    display_name: string | null;
+    first_name: string | null;
+    last_name: string | null;
+  } | null;
   training_data: { id: string; question: string; answer: string }[];
 }
 
@@ -74,6 +78,11 @@ const Dashboard = () => {
           source_links,
           submitter_id,
           submitter_email,
+          submitter_profile:profiles!training_documents_submitter_id_fkey (
+            display_name,
+            first_name,
+            last_name
+          ),
           training_data!inner (
             id,
             question,
@@ -163,18 +172,41 @@ const Dashboard = () => {
     }
   };
 
-  const getSubmitterInitials = (email: string | null) => {
-    if (!email) return 'U';
-    const parts = email.split('@')[0].split('.');
-    if (parts.length >= 2) {
-      return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  const getSubmitterInitials = (profile: any, email: string | null) => {
+    if (profile?.first_name && profile?.last_name) {
+      return `${profile.first_name[0]}${profile.last_name[0]}`.toUpperCase();
     }
-    return email.substring(0, 2).toUpperCase();
+    if (profile?.display_name) {
+      const parts = profile.display_name.split(' ');
+      if (parts.length >= 2) {
+        return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+      }
+      return profile.display_name.substring(0, 2).toUpperCase();
+    }
+    if (email) {
+      const parts = email.split('@')[0].split('.');
+      if (parts.length >= 2) {
+        return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+      }
+      return email.substring(0, 2).toUpperCase();
+    }
+    return 'U';
   };
 
-  const formatSubmitterEmail = (email: string | null) => {
-    if (!email) return 'Unknown User';
-    return email;
+  const formatSubmitterName = (profile: any, email: string | null) => {
+    if (profile?.display_name) {
+      return profile.display_name;
+    }
+    if (profile?.first_name && profile?.last_name) {
+      return `${profile.first_name} ${profile.last_name}`;
+    }
+    if (profile?.first_name) {
+      return profile.first_name;
+    }
+    if (email) {
+      return email;
+    }
+    return 'Unknown User';
   };
 
   // Pagination logic
@@ -281,12 +313,12 @@ const Dashboard = () => {
                             <div className="flex items-center gap-2">
                               <Avatar className="w-8 h-8">
                                 <AvatarFallback className="bg-blue-100 text-blue-600 text-xs">
-                                  {getSubmitterInitials(doc.submitter_email)}
+                                  {getSubmitterInitials(doc.submitter_profile, doc.submitter_email)}
                                 </AvatarFallback>
                               </Avatar>
                               <div className="flex flex-col">
                                 <span className="text-sm font-medium text-gray-900">
-                                  {formatSubmitterEmail(doc.submitter_email)}
+                                  {formatSubmitterName(doc.submitter_profile, doc.submitter_email)}
                                 </span>
                                 <span className="text-xs text-gray-500">
                                   ID: {doc.submitter_id.substring(0, 8)}...
@@ -347,7 +379,6 @@ const Dashboard = () => {
                   </Table>
                 </div>
 
-                {/* Pagination */}
                 {totalPages > 1 && (
                   <div className="flex justify-center mt-6">
                     <Pagination>
