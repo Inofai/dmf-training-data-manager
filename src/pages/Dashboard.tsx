@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -40,7 +41,7 @@ interface TrainingDocument {
   source_links: string[];
   submitter_id: string;
   submitter_email: string | null;
-  submitter_profile: {
+  profiles: {
     display_name: string | null;
     first_name: string | null;
     last_name: string | null;
@@ -78,7 +79,7 @@ const Dashboard = () => {
           source_links,
           submitter_id,
           submitter_email,
-          submitter_profile:profiles!training_documents_submitter_id_fkey (
+          profiles (
             display_name,
             first_name,
             last_name
@@ -313,12 +314,12 @@ const Dashboard = () => {
                             <div className="flex items-center gap-2">
                               <Avatar className="w-8 h-8">
                                 <AvatarFallback className="bg-blue-100 text-blue-600 text-xs">
-                                  {getSubmitterInitials(doc.submitter_profile, doc.submitter_email)}
+                                  {getSubmitterInitials(doc.profiles, doc.submitter_email)}
                                 </AvatarFallback>
                               </Avatar>
                               <div className="flex flex-col">
                                 <span className="text-sm font-medium text-gray-900">
-                                  {formatSubmitterName(doc.submitter_profile, doc.submitter_email)}
+                                  {formatSubmitterName(doc.profiles, doc.submitter_email)}
                                 </span>
                                 <span className="text-xs text-gray-500">
                                   ID: {doc.submitter_id.substring(0, 8)}...

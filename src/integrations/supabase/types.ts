@@ -206,7 +206,15 @@ export type Database = {
           title?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "training_documents_submitter_id_fkey"
+            columns: ["submitter_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
