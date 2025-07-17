@@ -5,12 +5,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { BarChart3, LogOut, Edit, Crown, Key, Users, Settings, MessageCircle } from "lucide-react";
+import { BarChart3, LogOut, Edit, Crown, Key, Users, Settings, MessageCircle, Code } from "lucide-react";
 
 const Navigation = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, isDeveloper, isAdminOrDeveloper } = useAuth();
 
   const handleSignOut = async () => {
     const { error } = await supabase.auth.signOut();
@@ -37,12 +37,20 @@ const Navigation = () => {
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center space-x-4">
             <h1 className="text-xl font-bold text-gray-900">AI Training Platform</h1>
-            {isAdmin && (
-              <Badge variant="secondary" className="bg-purple-100 text-purple-800 flex items-center gap-1">
-                <Crown className="w-3 h-3" />
-                Admin
-              </Badge>
-            )}
+            <div className="flex items-center gap-2">
+              {isAdmin && (
+                <Badge variant="secondary" className="bg-purple-100 text-purple-800 flex items-center gap-1">
+                  <Crown className="w-3 h-3" />
+                  Admin
+                </Badge>
+              )}
+              {isDeveloper && (
+                <Badge variant="secondary" className="bg-blue-100 text-blue-800 flex items-center gap-1">
+                  <Code className="w-3 h-3" />
+                  Developer
+                </Badge>
+              )}
+            </div>
           </div>
           
           <div className="flex items-center space-x-4">
@@ -73,7 +81,7 @@ const Navigation = () => {
               Chat
             </Button>
             
-            {isAdmin && (
+            {isAdminOrDeveloper && (
               <>
                 <Button
                   variant="ghost"

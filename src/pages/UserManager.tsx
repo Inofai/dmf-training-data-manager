@@ -9,14 +9,14 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Users, Info } from "lucide-react";
 
 const UserManager = () => {
-  const { user, loading, isAdmin, adminCheckComplete } = useAuth();
+  const { user, loading, isAdminOrDeveloper, adminCheckComplete } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     console.log('🔐 UserManager page - Auth state:', {
       user: user?.id,
       loading,
-      isAdmin,
+      isAdminOrDeveloper,
       adminCheckComplete
     });
 
@@ -25,14 +25,14 @@ const UserManager = () => {
       if (!user) {
         console.log('🚫 No user found, redirecting to home');
         navigate("/");
-      } else if (!isAdmin) {
-        console.log('🚫 User is not admin, redirecting to dashboard');
+      } else if (!isAdminOrDeveloper) {
+        console.log('🚫 User is not admin or developer, redirecting to dashboard');
         navigate("/dashboard");
       } else {
-        console.log('✅ User is admin, showing user manager page');
+        console.log('✅ User is admin or developer, showing user manager page');
       }
     }
-  }, [user, loading, isAdmin, adminCheckComplete, navigate]);
+  }, [user, loading, isAdminOrDeveloper, adminCheckComplete, navigate]);
 
   // Show loading while auth is being determined OR admin check is in progress
   if (loading || !adminCheckComplete) {
@@ -48,8 +48,8 @@ const UserManager = () => {
     );
   }
 
-  // Don't render the page content if user is not authenticated or not admin
-  if (!user || !isAdmin) {
+  // Don't render the page content if user is not authenticated or not admin/developer
+  if (!user || !isAdminOrDeveloper) {
     return null;
   }
 
@@ -67,7 +67,7 @@ const UserManager = () => {
           </CardHeader>
           <CardContent>
             <p className="text-gray-600 mb-4">
-              Manage user accounts and their roles. Only administrators can access this functionality.
+              Manage user accounts and their roles. Only administrators and developers can access this functionality.
             </p>
             
             <Alert>

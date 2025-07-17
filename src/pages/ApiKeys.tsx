@@ -9,14 +9,14 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Key, Info } from "lucide-react";
 
 const ApiKeys = () => {
-  const { user, loading, isAdmin, adminCheckComplete } = useAuth();
+  const { user, loading, isAdminOrDeveloper, adminCheckComplete } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     console.log('🔐 ApiKeys page - Auth state:', {
       user: user?.id,
       loading,
-      isAdmin,
+      isAdminOrDeveloper,
       adminCheckComplete
     });
 
@@ -25,14 +25,14 @@ const ApiKeys = () => {
       if (!user) {
         console.log('🚫 No user found, redirecting to home');
         navigate("/");
-      } else if (!isAdmin) {
-        console.log('🚫 User is not admin, redirecting to dashboard');
+      } else if (!isAdminOrDeveloper) {
+        console.log('🚫 User is not admin or developer, redirecting to dashboard');
         navigate("/dashboard");
       } else {
-        console.log('✅ User is admin, showing API keys page');
+        console.log('✅ User is admin or developer, showing API keys page');
       }
     }
-  }, [user, loading, isAdmin, adminCheckComplete, navigate]);
+  }, [user, loading, isAdminOrDeveloper, adminCheckComplete, navigate]);
 
   // Show loading while auth is being determined OR admin check is in progress
   if (loading || !adminCheckComplete) {
@@ -48,8 +48,8 @@ const ApiKeys = () => {
     );
   }
 
-  // Don't render the page content if user is not authenticated or not admin
-  if (!user || !isAdmin) {
+  // Don't render the page content if user is not authenticated or not admin/developer
+  if (!user || !isAdminOrDeveloper) {
     return null;
   }
 
@@ -68,7 +68,7 @@ const ApiKeys = () => {
           <CardContent>
             <p className="text-gray-600 mb-4">
               Manage the API key for your application. Only one API key can be active at a time.
-              Only administrators can access this functionality.
+              Only administrators and developers can access this functionality.
             </p>
             
             <Alert>

@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Users, Trash2 } from "lucide-react";
 import AddUserDialog from "./AddUserDialog";
+import { useAuth } from "@/hooks/useAuth";
 
 interface UserWithRole {
   id: string;
@@ -40,7 +41,7 @@ interface UserWithRole {
   created_at: string;
   roles: Array<{
     id: string;
-    role: 'admin' | 'user';
+    role: 'admin' | 'user' | 'developer';
   }>;
 }
 
@@ -49,6 +50,7 @@ const UserManagement = () => {
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const { toast } = useToast();
+  const { isDeveloper } = useAuth();
 
   useEffect(() => {
     getCurrentUser();
@@ -74,10 +76,15 @@ const UserManagement = () => {
 
       if (error) throw error;
 
-      // Group roles by user_id
+      // Group roles by user_id and filter out developer users if current user is not a developer
       const usersMap = new Map<string, UserWithRole>();
       
       userRoles?.forEach((userRole) => {
+        // Skip developer users if current user is not a developer
+        if (userRole.role === 'developer' && !isDeveloper) {
+          return;
+        }
+
         if (!usersMap.has(userRole.user_id)) {
           usersMap.set(userRole.user_id, {
             id: userRole.user_id,
@@ -90,7 +97,7 @@ const UserManagement = () => {
         const user = usersMap.get(userRole.user_id)!;
         user.roles.push({
           id: userRole.id,
-          role: userRole.role as 'admin' | 'user'
+          role: userRole.role as 'admin' | 'user' | 'developer'
         });
       });
 
@@ -107,7 +114,7 @@ const UserManagement = () => {
     }
   };
 
-  const updateUserRole = async (userId: string, newRole: 'admin' | 'user') => {
+  const updateUserRole = async (userId: string, newRole: 'admin' | 'user' | 'developer') => {
     try {
       // First, delete all existing roles for this user
       const { error: deleteError } = await supabase
@@ -173,16 +180,20 @@ const UserManagement = () => {
     }
   };
 
-  const getUserPrimaryRole = (roles: Array<{role: 'admin' | 'user'}>) => {
-    return roles.find(r => r.role === 'admin') ? 'admin' : 'user';
+  const getUserPrimaryRole = (roles: Array<{role: 'admin' | 'user' | 'developer'}>) => {
+    // Priority: developer > admin > user
+    if (roles.find(r => r.role === 'developer')) return 'developer';
+    if (roles.find(r => r.role === 'admin')) return 'admin';
+    return 'user';
   };
 
   const isCurrentUser = (userId: string) => {
     return userId === currentUserId;
   };
 
-  const isUserAdmin = (roles: Array<{role: 'admin' | 'user'}>) => {
-    return roles.some(r => r.role === 'admin');
+  const isUserProtected = (roles: Array<{role: 'admin' | 'user' | 'developer'}>) => {
+    // Protect admin and developer users from role changes and deletion
+    return roles.some(r => r.role === 'admin' || r.role === 'developer');
   };
 
   if (loading) {
@@ -233,7 +244,7 @@ const UserManagement = () => {
             <TableBody>
               {users.map((user) => {
                 const primaryRole = getUserPrimaryRole(user.roles);
-                const isAdmin = isUserAdmin(user.roles);
+                const isProtected = isUserProtected(user.roles);
                 const isCurrent = isCurrentUser(user.id);
                 
                 return (
@@ -249,7 +260,16 @@ const UserManagement = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={primaryRole === 'admin' ? 'default' : 'secondary'}>
+                      <Badge 
+                        variant={
+                          primaryRole === 'developer' ? 'default' :
+                          primaryRole === 'admin' ? 'default' : 'secondary'
+                        }
+                        className={
+                          primaryRole === 'developer' ? 'bg-blue-600' :
+                          primaryRole === 'admin' ? 'bg-purple-600' : ''
+                        }
+                      >
                         {primaryRole}
                       </Badge>
                     </TableCell>
@@ -258,13 +278,13 @@ const UserManagement = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        {/* Role selection - disabled for admin users and current user */}
+                        {/* Role selection - disabled for protected users and current user */}
                         <Select
                           value={primaryRole}
-                          onValueChange={(value: 'admin' | 'user') => 
+                          onValueChange={(value: 'admin' | 'user' | 'developer') => 
                             updateUserRole(user.id, value)
                           }
-                          disabled={isAdmin || isCurrent}
+                          disabled={isProtected || isCurrent}
                         >
                           <SelectTrigger className="w-32">
                             <SelectValue />
@@ -272,16 +292,20 @@ const UserManagement = () => {
                           <SelectContent>
                             <SelectItem value="user">User</SelectItem>
                             <SelectItem value="admin">Admin</SelectItem>
+                            {/* Only show developer option to developers */}
+                            {isDeveloper && (
+                              <SelectItem value="developer">Developer</SelectItem>
+                            )}
                           </SelectContent>
                         </Select>
 
-                        {/* Delete button - disabled for admin users and current user */}
+                        {/* Delete button - disabled for protected users and current user */}
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button
                               variant="outline"
                               size="sm"
-                              disabled={isAdmin || isCurrent}
+                              disabled={isProtected || isCurrent}
                               className="text-red-600 hover:text-red-700 hover:bg-red-50"
                             >
                               <Trash2 className="w-4 h-4" />

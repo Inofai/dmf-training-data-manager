@@ -76,6 +76,7 @@ export type Database = {
           changed_by: string | null
           created_at: string | null
           id: string
+          inserted: boolean | null
           is_current: boolean
           parent_id: string | null
           question: string
@@ -89,6 +90,7 @@ export type Database = {
           changed_by?: string | null
           created_at?: string | null
           id?: string
+          inserted?: boolean | null
           is_current?: boolean
           parent_id?: string | null
           question: string
@@ -102,6 +104,7 @@ export type Database = {
           changed_by?: string | null
           created_at?: string | null
           id?: string
+          inserted?: boolean | null
           is_current?: boolean
           parent_id?: string | null
           question?: string
