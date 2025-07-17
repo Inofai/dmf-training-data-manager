@@ -1,5 +1,6 @@
 
 import { useAuth } from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/useProfile";
 import LoginForm from "@/components/LoginForm";
 import Navigation from "@/components/Navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,9 +10,10 @@ import { useNavigate } from "react-router-dom";
 
 const Index = () => {
   const { user, loading } = useAuth();
+  const { profile, profileLoading } = useProfile();
   const navigate = useNavigate();
 
-  if (loading) {
+  if (loading || profileLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-100 flex items-center justify-center">
         <div className="text-center">
@@ -36,6 +38,8 @@ const Index = () => {
     );
   }
 
+  const displayName = profile?.display_name || profile?.first_name || user.email;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-100">
       <Navigation />
@@ -43,7 +47,7 @@ const Index = () => {
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Welcome back, {user.email}!
+            Welcome back, {displayName}!
           </h1>
           <p className="text-gray-600">
             Create training content and let AI extract question-answer pairs automatically.
