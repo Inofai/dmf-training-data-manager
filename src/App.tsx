@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import ApiKeys from "./pages/ApiKeys";
 import UserManager from "./pages/UserManager";
 import ApisManager from "./pages/ApisManager";
+import Chat from "./pages/Chat";
 import DocumentVerification from "./pages/DocumentVerification";
 import NotFound from "./pages/NotFound";
 
@@ -28,6 +29,7 @@ const App = () => (
           <Route path="/api-keys" element={<ApiKeys />} />
           <Route path="/user-manager" element={<UserManager />} />
           <Route path="/apis-manager" element={<ApisManager />} />
+          <Route path="/chat" element={<Chat />} />
           <Route path="/document-verification" element={<DocumentVerification />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

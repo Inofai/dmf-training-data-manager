@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import AiChatSettings from "@/components/AiChatSettings";
 import { 
   Settings, 
   Activity, 
@@ -126,6 +127,9 @@ const ApiManagement = () => {
 
   return (
     <div className="space-y-6">
+      {/* AI Chat Configuration */}
+      <AiChatSettings />
+
       {/* API Configuration Status */}
       <Card>
         <CardHeader>

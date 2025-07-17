@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { BarChart3, LogOut, Edit, Crown, Key, Users, Settings } from "lucide-react";
+import { BarChart3, LogOut, Edit, Crown, Key, Users, Settings, MessageCircle } from "lucide-react";
 
 const Navigation = () => {
   const navigate = useNavigate();
@@ -62,6 +62,15 @@ const Navigation = () => {
             >
               <BarChart3 className="w-4 h-4" />
               Dashboard
+            </Button>
+            
+            <Button
+              variant="ghost"
+              onClick={() => navigate("/chat")}
+              className="flex items-center gap-2"
+            >
+              <MessageCircle className="w-4 h-4" />
+              Chat
             </Button>
             
             {isAdmin && (
