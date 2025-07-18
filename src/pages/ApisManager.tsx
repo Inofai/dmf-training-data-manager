@@ -9,14 +9,14 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Settings, Info } from "lucide-react";
 
 const ApisManager = () => {
-  const { user, loading, isAdminOrDeveloper, adminCheckComplete } = useAuth();
+  const { user, loading, isDeveloper, adminCheckComplete } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     console.log('🔐 ApisManager page - Auth state:', {
       user: user?.id,
       loading,
-      isAdminOrDeveloper,
+      isDeveloper,
       adminCheckComplete
     });
 
@@ -25,14 +25,14 @@ const ApisManager = () => {
       if (!user) {
         console.log('🚫 No user found, redirecting to home');
         navigate("/");
-      } else if (!isAdminOrDeveloper) {
-        console.log('🚫 User is not admin or developer, redirecting to dashboard');
+      } else if (!isDeveloper) {
+        console.log('🚫 User is not developer, redirecting to dashboard');
         navigate("/dashboard");
       } else {
-        console.log('✅ User is admin or developer, showing APIs manager page');
+        console.log('✅ User is developer, showing APIs manager page');
       }
     }
-  }, [user, loading, isAdminOrDeveloper, adminCheckComplete, navigate]);
+  }, [user, loading, isDeveloper, adminCheckComplete, navigate]);
 
   // Show loading while auth is being determined OR admin check is in progress
   if (loading || !adminCheckComplete) {
@@ -48,8 +48,8 @@ const ApisManager = () => {
     );
   }
 
-  // Don't render the page content if user is not authenticated or not admin/developer
-  if (!user || !isAdminOrDeveloper) {
+  // Don't render the page content if user is not authenticated or not developer
+  if (!user || !isDeveloper) {
     return null;
   }
 
@@ -68,6 +68,7 @@ const ApisManager = () => {
           <CardContent>
             <p className="text-gray-600 mb-4">
               Manage API configurations, endpoints, and integrations. Monitor API health and performance.
+              Only developers can access this functionality.
             </p>
             
             <Alert>

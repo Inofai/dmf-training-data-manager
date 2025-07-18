@@ -9,14 +9,14 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Key, Info } from "lucide-react";
 
 const ApiKeys = () => {
-  const { user, loading, isAdminOrDeveloper, adminCheckComplete } = useAuth();
+  const { user, loading, isDeveloper, adminCheckComplete } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     console.log('🔐 ApiKeys page - Auth state:', {
       user: user?.id,
       loading,
-      isAdminOrDeveloper,
+      isDeveloper,
       adminCheckComplete
     });
 
@@ -25,14 +25,14 @@ const ApiKeys = () => {
       if (!user) {
         console.log('🚫 No user found, redirecting to home');
         navigate("/");
-      } else if (!isAdminOrDeveloper) {
-        console.log('🚫 User is not admin or developer, redirecting to dashboard');
+      } else if (!isDeveloper) {
+        console.log('🚫 User is not developer, redirecting to dashboard');
         navigate("/dashboard");
       } else {
-        console.log('✅ User is admin or developer, showing API keys page');
+        console.log('✅ User is developer, showing API keys page');
       }
     }
-  }, [user, loading, isAdminOrDeveloper, adminCheckComplete, navigate]);
+  }, [user, loading, isDeveloper, adminCheckComplete, navigate]);
 
   // Show loading while auth is being determined OR admin check is in progress
   if (loading || !adminCheckComplete) {
@@ -48,8 +48,8 @@ const ApiKeys = () => {
     );
   }
 
-  // Don't render the page content if user is not authenticated or not admin/developer
-  if (!user || !isAdminOrDeveloper) {
+  // Don't render the page content if user is not authenticated or not developer
+  if (!user || !isDeveloper) {
     return null;
   }
 
@@ -68,7 +68,7 @@ const ApiKeys = () => {
           <CardContent>
             <p className="text-gray-600 mb-4">
               Manage the API key for your application. Only one API key can be active at a time.
-              Only administrators and developers can access this functionality.
+              Only developers can access this functionality.
             </p>
             
             <Alert>

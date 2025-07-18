@@ -10,7 +10,7 @@ import { BarChart3, LogOut, Edit, Crown, Key, Users, Settings, MessageCircle, Co
 const Navigation = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, isAdmin, isDeveloper, isAdminOrDeveloper } = useAuth();
+  const { user, isAdmin, isDeveloper } = useAuth();
 
   const handleSignOut = async () => {
     const { error } = await supabase.auth.signOut();
@@ -81,17 +81,19 @@ const Navigation = () => {
               Chat
             </Button>
             
-            {isAdminOrDeveloper && (
+            {isAdmin && (
+              <Button
+                variant="ghost"
+                onClick={() => navigate("/user-manager")}
+                className="flex items-center gap-2"
+              >
+                <Users className="w-4 h-4" />
+                Users
+              </Button>
+            )}
+            
+            {isDeveloper && (
               <>
-                <Button
-                  variant="ghost"
-                  onClick={() => navigate("/user-manager")}
-                  className="flex items-center gap-2"
-                >
-                  <Users className="w-4 h-4" />
-                  Users
-                </Button>
-                
                 <Button
                   variant="ghost"
                   onClick={() => navigate("/api-keys")}

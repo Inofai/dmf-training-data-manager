@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -193,7 +192,13 @@ const ApiManagement = () => {
             {endpoints.map((endpoint) => (
               <div key={endpoint.id} className="flex items-center justify-between p-4 border rounded-lg">
                 <div className="flex items-center gap-3">
-                  {getStatusIcon(endpoint.status)}
+                  {endpoint.status === 'active' ? (
+                    <CheckCircle className="w-4 h-4 text-green-500" />
+                  ) : endpoint.status === 'inactive' ? (
+                    <XCircle className="w-4 h-4 text-gray-500" />
+                  ) : (
+                    <AlertCircle className="w-4 h-4 text-red-500" />
+                  )}
                   <div>
                     <h4 className="font-medium">{endpoint.name}</h4>
                     <p className="text-sm text-gray-500">{endpoint.url}</p>
@@ -206,7 +211,9 @@ const ApiManagement = () => {
                       {endpoint.responseTime}ms
                     </span>
                   )}
-                  {getStatusBadge(endpoint.status)}
+                  <Badge variant={endpoint.status === 'active' ? 'default' : endpoint.status === 'inactive' ? 'secondary' : 'destructive'}>
+                    {endpoint.status.charAt(0).toUpperCase() + endpoint.status.slice(1)}
+                  </Badge>
                 </div>
               </div>
             ))}

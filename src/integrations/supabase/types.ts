@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_chat_config: {
+        Row: {
+          base_url: string
+          created_at: string
+          created_by: string
+          id: string
+          temperature: number
+          updated_at: string
+        }
+        Insert: {
+          base_url?: string
+          created_at?: string
+          created_by: string
+          id?: string
+          temperature?: number
+          updated_at?: string
+        }
+        Update: {
+          base_url?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          temperature?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       api_key: {
         Row: {
           created_at: string | null
