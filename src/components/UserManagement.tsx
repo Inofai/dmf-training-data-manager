@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -126,26 +125,15 @@ const UserManagement = () => {
 
       if (deleteError) throw deleteError;
 
-      // Then, insert the new role using raw SQL to bypass type checking temporarily
-      const { error: insertError } = await supabase.rpc('exec_sql', {
-        query: `INSERT INTO user_roles (user_id, role) VALUES ('${userId}', '${newRole}')`
-      });
+      // Then, insert the new role
+      const { error: insertError } = await supabase
+        .from('user_roles')
+        .insert({
+          user_id: userId,
+          role: newRole as any // Type assertion to bypass current type limitation
+        });
 
-      if (insertError) {
-        // Fallback to direct insert for non-developer roles
-        if (newRole !== 'developer') {
-          const { error: fallbackError } = await supabase
-            .from('user_roles')
-            .insert({
-              user_id: userId,
-              role: newRole as any // Type assertion to bypass current type limitation
-            });
-          
-          if (fallbackError) throw fallbackError;
-        } else {
-          throw insertError;
-        }
-      }
+      if (insertError) throw insertError;
 
       toast({
         title: "Success",
