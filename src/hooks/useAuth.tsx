@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,6 +5,8 @@ import { supabase } from '@/integrations/supabase/client';
 const ADMIN_CACHE_KEY = 'admin_status_cache';
 const DEVELOPER_CACHE_KEY = 'developer_status_cache';
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+
+type UserRole = 'admin' | 'user' | 'developer';
 
 interface RoleCache {
   isRole: boolean;
@@ -89,12 +90,12 @@ export const useAuth = () => {
       
       const adminCheckPromise = supabase.rpc('has_role', {
         _user_id: userId,
-        _role: 'admin'
+        _role: 'admin' as any // Type assertion to bypass current type limitation
       });
       
       const developerCheckPromise = supabase.rpc('has_role', {
         _user_id: userId,
-        _role: 'developer'
+        _role: 'developer' as any // Type assertion to bypass current type limitation
       });
       
       const [adminResult, developerResult] = await Promise.race([
