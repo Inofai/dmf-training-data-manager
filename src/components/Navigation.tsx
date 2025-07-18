@@ -81,7 +81,7 @@ const Navigation = () => {
               Chat
             </Button>
             
-            {isAdmin && (
+            {(isAdmin || isDeveloper) && (
               <Button
                 variant="ghost"
                 onClick={() => navigate("/user-manager")}

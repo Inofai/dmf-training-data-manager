@@ -9,7 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Key, Info } from "lucide-react";
 
 const ApiKeys = () => {
-  const { user, loading, isDeveloper, adminCheckComplete } = useAuth();
+  const { user, loading, isDeveloper, roleCheckComplete } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -17,11 +17,11 @@ const ApiKeys = () => {
       user: user?.id,
       loading,
       isDeveloper,
-      adminCheckComplete
+      roleCheckComplete
     });
 
-    // Only make navigation decisions when loading is complete AND admin check is complete
-    if (!loading && adminCheckComplete) {
+    // Only make navigation decisions when loading is complete AND role check is complete
+    if (!loading && roleCheckComplete) {
       if (!user) {
         console.log('🚫 No user found, redirecting to home');
         navigate("/");
@@ -32,10 +32,10 @@ const ApiKeys = () => {
         console.log('✅ User is developer, showing API keys page');
       }
     }
-  }, [user, loading, isDeveloper, adminCheckComplete, navigate]);
+  }, [user, loading, isDeveloper, roleCheckComplete, navigate]);
 
-  // Show loading while auth is being determined OR admin check is in progress
-  if (loading || !adminCheckComplete) {
+  // Show loading while auth is being determined OR role check is in progress
+  if (loading || !roleCheckComplete) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-100 flex items-center justify-center">
         <div className="text-center">

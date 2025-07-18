@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -40,10 +41,8 @@ interface UserWithRole {
   id: string;
   email: string;
   created_at: string;
-  roles: Array<{
-    id: string;
-    role: UserRole;
-  }>;
+  role: UserRole;
+  role_id: string;
 }
 
 const UserManagement = () => {
@@ -77,32 +76,24 @@ const UserManagement = () => {
 
       if (error) throw error;
 
-      // Group roles by user_id and filter out developer users if current user is not a developer
-      const usersMap = new Map<string, UserWithRole>();
-      
-      userRoles?.forEach((userRole) => {
-        // Skip developer users if current user is not a developer
+      // Filter out developer users if current user is not a developer
+      const filteredUserRoles = userRoles?.filter(userRole => {
         if (userRole.role === 'developer' && !isDeveloper) {
-          return;
+          return false;
         }
+        return true;
+      }) || [];
 
-        if (!usersMap.has(userRole.user_id)) {
-          usersMap.set(userRole.user_id, {
-            id: userRole.user_id,
-            email: '', // We'll need to get this from auth metadata or another source
-            created_at: userRole.created_at,
-            roles: []
-          });
-        }
-        
-        const user = usersMap.get(userRole.user_id)!;
-        user.roles.push({
-          id: userRole.id,
-          role: userRole.role as UserRole
-        });
-      });
+      // Transform the data to match our interface
+      const usersData: UserWithRole[] = filteredUserRoles.map((userRole) => ({
+        id: userRole.user_id,
+        email: '', // We'll need to get this from auth metadata or another source
+        created_at: userRole.created_at,
+        role: userRole.role as UserRole,
+        role_id: userRole.id
+      }));
 
-      setUsers(Array.from(usersMap.values()));
+      setUsers(usersData);
     } catch (error) {
       console.error('Error fetching users:', error);
       toast({
@@ -117,23 +108,13 @@ const UserManagement = () => {
 
   const updateUserRole = async (userId: string, newRole: UserRole) => {
     try {
-      // First, delete all existing roles for this user
-      const { error: deleteError } = await supabase
+      // Update the user's role (since each user has only one role now)
+      const { error } = await supabase
         .from('user_roles')
-        .delete()
+        .update({ role: newRole as any }) // Type assertion to bypass current type limitation
         .eq('user_id', userId);
 
-      if (deleteError) throw deleteError;
-
-      // Then, insert the new role
-      const { error: insertError } = await supabase
-        .from('user_roles')
-        .insert({
-          user_id: userId,
-          role: newRole as any // Type assertion to bypass current type limitation
-        });
-
-      if (insertError) throw insertError;
+      if (error) throw error;
 
       toast({
         title: "Success",
@@ -181,20 +162,13 @@ const UserManagement = () => {
     }
   };
 
-  const getUserPrimaryRole = (roles: Array<{role: UserRole}>) => {
-    // Priority: developer > admin > user
-    if (roles.find(r => r.role === 'developer')) return 'developer';
-    if (roles.find(r => r.role === 'admin')) return 'admin';
-    return 'user';
-  };
-
   const isCurrentUser = (userId: string) => {
     return userId === currentUserId;
   };
 
-  const isUserProtected = (roles: Array<{role: UserRole}>) => {
+  const isUserProtected = (role: UserRole) => {
     // Protect admin and developer users from role changes and deletion
-    return roles.some(r => r.role === 'admin' || r.role === 'developer');
+    return role === 'admin' || role === 'developer';
   };
 
   if (loading) {
@@ -244,8 +218,7 @@ const UserManagement = () => {
             </TableHeader>
             <TableBody>
               {users.map((user) => {
-                const primaryRole = getUserPrimaryRole(user.roles);
-                const isProtected = isUserProtected(user.roles);
+                const isProtected = isUserProtected(user.role);
                 const isCurrent = isCurrentUser(user.id);
                 
                 return (
@@ -263,15 +236,15 @@ const UserManagement = () => {
                     <TableCell>
                       <Badge 
                         variant={
-                          primaryRole === 'developer' ? 'default' :
-                          primaryRole === 'admin' ? 'default' : 'secondary'
+                          user.role === 'developer' ? 'default' :
+                          user.role === 'admin' ? 'default' : 'secondary'
                         }
                         className={
-                          primaryRole === 'developer' ? 'bg-blue-600' :
-                          primaryRole === 'admin' ? 'bg-purple-600' : ''
+                          user.role === 'developer' ? 'bg-blue-600' :
+                          user.role === 'admin' ? 'bg-purple-600' : ''
                         }
                       >
-                        {primaryRole}
+                        {user.role}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -281,7 +254,7 @@ const UserManagement = () => {
                       <div className="flex items-center gap-2">
                         {/* Role selection - disabled for protected users and current user */}
                         <Select
-                          value={primaryRole}
+                          value={user.role}
                           onValueChange={(value: UserRole) => 
                             updateUserRole(user.id, value)
                           }

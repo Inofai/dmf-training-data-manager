@@ -1,15 +1,15 @@
+
 import { useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
-const ADMIN_CACHE_KEY = 'admin_status_cache';
-const DEVELOPER_CACHE_KEY = 'developer_status_cache';
+const ROLE_CACHE_KEY = 'user_role_cache';
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
 type UserRole = 'admin' | 'user' | 'developer';
 
 interface RoleCache {
-  isRole: boolean;
+  role: UserRole;
   timestamp: number;
   userId: string;
 }
@@ -18,13 +18,12 @@ export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [isDeveloper, setIsDeveloper] = useState(false);
-  const [adminCheckComplete, setAdminCheckComplete] = useState(false);
+  const [userRole, setUserRole] = useState<UserRole>('user');
+  const [roleCheckComplete, setRoleCheckComplete] = useState(false);
 
-  const getCachedRoleStatus = (userId: string, cacheKey: string): boolean | null => {
+  const getCachedRole = (userId: string): UserRole | null => {
     try {
-      const cached = localStorage.getItem(cacheKey);
+      const cached = localStorage.getItem(ROLE_CACHE_KEY);
       if (!cached) return null;
 
       const roleCache: RoleCache = JSON.parse(cached);
@@ -35,52 +34,50 @@ export const useAuth = () => {
         roleCache.userId === userId &&
         (now - roleCache.timestamp) < CACHE_DURATION
       ) {
-        console.log(`✅ Using cached role status for ${cacheKey}:`, roleCache.isRole);
-        return roleCache.isRole;
+        console.log(`✅ Using cached role:`, roleCache.role);
+        return roleCache.role;
       }
 
       // Cache expired or different user
-      localStorage.removeItem(cacheKey);
+      localStorage.removeItem(ROLE_CACHE_KEY);
       return null;
     } catch (error) {
-      console.error(`Error reading ${cacheKey} cache:`, error);
-      localStorage.removeItem(cacheKey);
+      console.error(`Error reading role cache:`, error);
+      localStorage.removeItem(ROLE_CACHE_KEY);
       return null;
     }
   };
 
-  const setCachedRoleStatus = (userId: string, isRoleStatus: boolean, cacheKey: string) => {
+  const setCachedRole = (userId: string, role: UserRole) => {
     try {
       const roleCache: RoleCache = {
-        isRole: isRoleStatus,
+        role: role,
         timestamp: Date.now(),
         userId: userId
       };
-      localStorage.setItem(cacheKey, JSON.stringify(roleCache));
-      console.log(`💾 Cached role status for ${cacheKey} for 24 hours:`, isRoleStatus);
+      localStorage.setItem(ROLE_CACHE_KEY, JSON.stringify(roleCache));
+      console.log(`💾 Cached role for 24 hours:`, role);
     } catch (error) {
-      console.error(`Error caching ${cacheKey} status:`, error);
+      console.error(`Error caching role:`, error);
     }
   };
 
-  const checkRoles = async (userId: string) => {
+  const checkRole = async (userId: string) => {
     console.log('🔍 Starting role check for user:', userId);
-    setAdminCheckComplete(false);
+    setRoleCheckComplete(false);
 
-    // Check cached statuses
-    const cachedAdminStatus = getCachedRoleStatus(userId, ADMIN_CACHE_KEY);
-    const cachedDeveloperStatus = getCachedRoleStatus(userId, DEVELOPER_CACHE_KEY);
+    // Check cached role
+    const cachedRole = getCachedRole(userId);
     
-    if (cachedAdminStatus !== null && cachedDeveloperStatus !== null) {
-      setIsAdmin(cachedAdminStatus);
-      setIsDeveloper(cachedDeveloperStatus);
-      setAdminCheckComplete(true);
+    if (cachedRole !== null) {
+      setUserRole(cachedRole);
+      setRoleCheckComplete(true);
       console.log('🏁 Role check completed (cached)');
       return;
     }
 
     // Cache miss or expired, fetch from database
-    console.log('🌐 Fetching role status from database (cache miss/expired)');
+    console.log('🌐 Fetching role from database (cache miss/expired)');
     
     try {
       // Add timeout to prevent hanging
@@ -88,44 +85,34 @@ export const useAuth = () => {
         setTimeout(() => reject(new Error('Role check timeout')), 10000)
       );
       
-      const adminCheckPromise = supabase.rpc('has_role', {
-        _user_id: userId,
-        _role: 'admin' as any // Type assertion to bypass current type limitation
-      });
+      const roleCheckPromise = supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .single();
       
-      const developerCheckPromise = supabase.rpc('has_role', {
-        _user_id: userId,
-        _role: 'developer' as any // Type assertion to bypass current type limitation
-      });
-      
-      const [adminResult, developerResult] = await Promise.race([
-        Promise.all([adminCheckPromise, developerCheckPromise]),
+      const result = await Promise.race([
+        roleCheckPromise,
         timeoutPromise
-      ]) as any[];
+      ]) as any;
       
-      if (adminResult.error || developerResult.error) {
-        console.error('❌ Error checking roles:', adminResult.error || developerResult.error);
-        setIsAdmin(false);
-        setIsDeveloper(false);
+      if (result.error) {
+        console.error('❌ Error checking role:', result.error);
+        setUserRole('user'); // Default to user role
       } else {
-        const adminStatus = adminResult.data || false;
-        const developerStatus = developerResult.data || false;
+        const role = result.data?.role || 'user';
+        console.log('✅ Role check result:', role);
+        setUserRole(role);
         
-        console.log('✅ Role check results - Admin:', adminStatus, 'Developer:', developerStatus);
-        setIsAdmin(adminStatus);
-        setIsDeveloper(developerStatus);
-        
-        // Cache the results for 24 hours
-        setCachedRoleStatus(userId, adminStatus, ADMIN_CACHE_KEY);
-        setCachedRoleStatus(userId, developerStatus, DEVELOPER_CACHE_KEY);
+        // Cache the result for 24 hours
+        setCachedRole(userId, role);
       }
     } catch (error) {
       console.error('❌ Exception during role check:', error);
-      // If there's any error or timeout, default to non-admin/non-developer
-      setIsAdmin(false);
-      setIsDeveloper(false);
+      // If there's any error or timeout, default to user
+      setUserRole('user');
     } finally {
-      setAdminCheckComplete(true);
+      setRoleCheckComplete(true);
       console.log('🏁 Role check completed');
     }
   };
@@ -151,15 +138,13 @@ export const useAuth = () => {
         if (session?.user) {
           // Use setTimeout to prevent blocking the auth state change
           setTimeout(async () => {
-            await checkRoles(session.user.id);
+            await checkRole(session.user.id);
           }, 0);
         } else {
-          setIsAdmin(false);
-          setIsDeveloper(false);
-          setAdminCheckComplete(true);
+          setUserRole('user');
+          setRoleCheckComplete(true);
           // Clear cache when user logs out
-          localStorage.removeItem(ADMIN_CACHE_KEY);
-          localStorage.removeItem(DEVELOPER_CACHE_KEY);
+          localStorage.removeItem(ROLE_CACHE_KEY);
         }
         
         // Set loading to false after processing
@@ -179,7 +164,7 @@ export const useAuth = () => {
         if (error) {
           console.error('❌ Error getting session:', error);
           setLoading(false);
-          setAdminCheckComplete(true);
+          setRoleCheckComplete(true);
           return;
         }
 
@@ -191,12 +176,11 @@ export const useAuth = () => {
           
           if (session?.user) {
             setTimeout(async () => {
-              await checkRoles(session.user.id);
+              await checkRole(session.user.id);
             }, 0);
           } else {
-            setIsAdmin(false);
-            setIsDeveloper(false);
-            setAdminCheckComplete(true);
+            setUserRole('user');
+            setRoleCheckComplete(true);
           }
           
           setLoading(false);
@@ -205,7 +189,7 @@ export const useAuth = () => {
       } catch (error) {
         console.error('❌ Exception during auth initialization:', error);
         setLoading(false);
-        setAdminCheckComplete(true);
+        setRoleCheckComplete(true);
       }
     };
 
@@ -224,23 +208,25 @@ export const useAuth = () => {
       userEmail: user?.email,
       hasSession: !!session,
       loading,
-      isAdmin,
-      isDeveloper,
-      adminCheckComplete,
+      userRole,
+      roleCheckComplete,
       sessionExpiry: session?.expires_at ? new Date(session.expires_at * 1000).toISOString() : 'N/A'
     });
-  }, [user, session, loading, isAdmin, isDeveloper, adminCheckComplete]);
+  }, [user, session, loading, userRole, roleCheckComplete]);
 
-  // Create a combined isAdminOrDeveloper flag for convenience
+  // Derived role flags for convenience
+  const isAdmin = userRole === 'admin';
+  const isDeveloper = userRole === 'developer';
   const isAdminOrDeveloper = isAdmin || isDeveloper;
 
   return {
     user,
     session,
     loading,
+    userRole,
     isAdmin,
     isDeveloper,
     isAdminOrDeveloper,
-    adminCheckComplete
+    roleCheckComplete: roleCheckComplete // Renamed for clarity
   };
 };

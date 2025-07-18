@@ -9,7 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Users, Info } from "lucide-react";
 
 const UserManager = () => {
-  const { user, loading, isAdminOrDeveloper, adminCheckComplete } = useAuth();
+  const { user, loading, isAdminOrDeveloper, roleCheckComplete } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -17,11 +17,11 @@ const UserManager = () => {
       user: user?.id,
       loading,
       isAdminOrDeveloper,
-      adminCheckComplete
+      roleCheckComplete
     });
 
-    // Only make navigation decisions when loading is complete AND admin check is complete
-    if (!loading && adminCheckComplete) {
+    // Only make navigation decisions when loading is complete AND role check is complete
+    if (!loading && roleCheckComplete) {
       if (!user) {
         console.log('🚫 No user found, redirecting to home');
         navigate("/");
@@ -32,10 +32,10 @@ const UserManager = () => {
         console.log('✅ User is admin or developer, showing user manager page');
       }
     }
-  }, [user, loading, isAdminOrDeveloper, adminCheckComplete, navigate]);
+  }, [user, loading, isAdminOrDeveloper, roleCheckComplete, navigate]);
 
-  // Show loading while auth is being determined OR admin check is in progress
-  if (loading || !adminCheckComplete) {
+  // Show loading while auth is being determined OR role check is in progress
+  if (loading || !roleCheckComplete) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-100 flex items-center justify-center">
         <div className="text-center">
