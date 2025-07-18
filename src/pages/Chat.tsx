@@ -1,7 +1,7 @@
-
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
+import { useAIChatConfig } from "@/hooks/use-ai-chat-config";
 import Navigation from "@/components/Navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,8 +23,10 @@ interface ChatResponse {
 
 const Chat = () => {
   const { user, loading } = useAuth();
+  const { chatConfig, loading: configLoading, error: configError } = useAIChatConfig();
   const navigate = useNavigate();
   const { toast } = useToast();
+
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -32,17 +34,27 @@ const Chat = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (!loading && !configLoading && (!user || !chatConfig)) {
       navigate("/");
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, configLoading, chatConfig, navigate]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  useEffect(() => {
+    if (configError || !chatConfig?.model || chatConfig.temperature == null) {
+      toast({
+        title: "Configuration Error",
+        description: "AI chat settings are missing or incomplete.",
+        variant: "destructive",
+      });
+    }
+  }, [configError, chatConfig, toast]);
+
   const sendMessage = async () => {
-    if (!inputMessage.trim()) return;
+    if (!inputMessage.trim() || !chatConfig?.model || chatConfig.temperature == null) return;
 
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
@@ -56,25 +68,20 @@ const Chat = () => {
     setIsLoading(true);
 
     try {
-      // Get API settings from localStorage or use defaults
-      const apiSettings = JSON.parse(localStorage.getItem('aiChatSettings') || '{}');
-      const baseUrl = apiSettings.baseUrl || 'https://46675d18caba.ngrok-free.app';
-      const temperature = apiSettings.temperature || 0.7;
+      const url = new URL(`${chatConfig.model}/chat`);
+      url.searchParams.append("query", inputMessage);
+      url.searchParams.append("temperature", chatConfig.temperature.toString());
 
-      const url = new URL(`${baseUrl}/chat`);
-      url.searchParams.append('query', inputMessage);
-      url.searchParams.append('temperature', temperature.toString());
-      
       if (chatId) {
-        url.searchParams.append('chat_id', chatId);
+        url.searchParams.append("chat_id", chatId);
       }
 
       const response = await fetch(url.toString(), {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'accept': 'application/json',
+          accept: "application/json",
         },
-        body: ''
+        body: "",
       });
 
       if (!response.ok) {
@@ -82,8 +89,6 @@ const Chat = () => {
       }
 
       const data: ChatResponse = await response.json();
-
-      // Update chat_id for future requests
       setChatId(data.chat_id);
 
       const botMessage: ChatMessage = {
@@ -95,10 +100,10 @@ const Chat = () => {
 
       setMessages(prev => [...prev, botMessage]);
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error("Error sending message:", error);
       toast({
         title: "Error",
-        description: "Failed to send message. Please check your API settings.",
+        description: "Failed to send message. Please check your chat config.",
         variant: "destructive",
       });
     } finally {
@@ -107,7 +112,7 @@ const Chat = () => {
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
     }
@@ -118,7 +123,7 @@ const Chat = () => {
     setChatId(null);
   };
 
-  if (loading) {
+  if (loading || configLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-100 flex items-center justify-center">
         <div className="text-center">
@@ -134,57 +139,51 @@ const Chat = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-blue-100 via-white to-indigo-100">
       <Navigation />
-      
+
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <Card className="h-[calc(100vh-200px)] flex flex-col">
-          <CardHeader className="flex-shrink-0">
-            <CardTitle className="flex items-center gap-2 text-2xl text-blue-700">
+        <Card className="h-[calc(100vh-150px)] flex flex-col backdrop-blur-xl bg-white/70 border border-white/50 shadow-lg rounded-2xl overflow-hidden">
+          <CardHeader className="p-6 border-b border-white/20 bg-white/30 backdrop-blur-sm">
+            <CardTitle className="flex items-center gap-3 text-2xl text-blue-800 font-semibold">
               <MessageCircle className="w-6 h-6" />
               AI Chat Assistant
             </CardTitle>
-            <div className="flex gap-2">
+            <div className="mt-2">
               <Button variant="outline" size="sm" onClick={clearChat}>
                 Clear Chat
               </Button>
             </div>
           </CardHeader>
-          
-          <CardContent className="flex-1 flex flex-col p-6">
+
+          <CardContent className="flex-1 flex flex-col p-4">
             {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto mb-4 space-y-4">
+            <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scroll">
               {messages.length === 0 ? (
                 <div className="text-center text-gray-500 mt-8">
                   <Bot className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>Start a conversation with the AI assistant!</p>
+                  <p className="text-lg">Start a conversation with the AI assistant!</p>
                 </div>
               ) : (
                 messages.map((message) => (
                   <div
                     key={message.id}
-                    className={`flex gap-3 ${message.isUser ? 'justify-end' : 'justify-start'}`}
+                    className={`flex ${message.isUser ? "justify-end" : "justify-start"}`}
                   >
-                    <div className={`flex gap-3 max-w-[80%] ${message.isUser ? 'flex-row-reverse' : 'flex-row'}`}>
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                        message.isUser ? 'bg-blue-500' : 'bg-gray-500'
-                      }`}>
-                        {message.isUser ? (
-                          <User className="w-4 h-4 text-white" />
-                        ) : (
-                          <Bot className="w-4 h-4 text-white" />
-                        )}
-                      </div>
-                      <div className={`rounded-lg px-4 py-2 ${
-                        message.isUser 
-                          ? 'bg-blue-500 text-white' 
-                          : 'bg-gray-200 text-gray-900'
-                      }`}>
-                        <p className="whitespace-pre-wrap">{message.content}</p>
-                        <p className={`text-xs mt-1 ${
-                          message.isUser ? 'text-blue-100' : 'text-gray-500'
-                        }`}>
-                          {message.timestamp.toLocaleTimeString()}
+                    <div className="flex max-w-[80%] gap-3">
+                      <div
+                        className={`rounded-xl p-3 transition-all ${
+                          message.isUser
+                            ? "bg-gradient-to-br from-blue-500 to-blue-600 text-white self-end shadow-md"
+                            : "bg-white text-gray-900 shadow border border-gray-200"
+                        }`}
+                      >
+                        <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
+                        <p className="text-[11px] text-right mt-1 opacity-70">
+                          {message.timestamp.toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
                         </p>
                       </div>
                     </div>
@@ -192,36 +191,47 @@ const Chat = () => {
                 ))
               )}
               {isLoading && (
-                <div className="flex gap-3 justify-start">
-                  <div className="w-8 h-8 rounded-full bg-gray-500 flex items-center justify-center flex-shrink-0">
+                <div className="flex gap-3 justify-start animate-pulse">
+                  <div className="w-8 h-8 rounded-full bg-gray-400 flex items-center justify-center">
                     <Bot className="w-4 h-4 text-white" />
                   </div>
                   <div className="bg-gray-200 rounded-lg px-4 py-2">
                     <div className="flex space-x-1">
-                      <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                      <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                      <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" />
+                      <div
+                        className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"
+                        style={{ animationDelay: "0.1s" }}
+                      />
+                      <div
+                        className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"
+                        style={{ animationDelay: "0.2s" }}
+                      />
                     </div>
                   </div>
                 </div>
               )}
               <div ref={messagesEndRef} />
             </div>
-            
+
             {/* Input Area */}
-            <div className="flex gap-2">
+            <div className="mt-4 flex items-center gap-2 border-t border-gray-200 pt-4">
               <Input
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Type your message..."
-                disabled={isLoading}
-                className="flex-1"
+                disabled={isLoading || !chatConfig?.model || chatConfig.temperature == null}
+                className="flex-1 rounded-full px-4 py-2 shadow-inner bg-white/90"
               />
-              <Button 
-                onClick={sendMessage} 
-                disabled={isLoading || !inputMessage.trim()}
-                size="icon"
+              <Button
+                onClick={sendMessage}
+                disabled={
+                  isLoading ||
+                  !inputMessage.trim() ||
+                  !chatConfig?.model ||
+                  chatConfig.temperature == null
+                }
+                className="rounded-full h-10 w-10 p-2"
               >
                 <Send className="w-4 h-4" />
               </Button>
