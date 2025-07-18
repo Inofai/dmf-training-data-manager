@@ -32,7 +32,7 @@ export const useAIChatConfig = () => {
         const { data, error } = await supabase
           .from('ai_chat_config')
           .select('*')
-          .eq('user_id', user.id)
+          .eq('id', user.id)
           .single();
 
         if (error) {
