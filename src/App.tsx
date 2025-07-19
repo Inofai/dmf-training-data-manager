@@ -12,6 +12,7 @@ import UserManager from "./pages/UserManager";
 import ApisManager from "./pages/ApisManager";
 import Chat from "./pages/Chat";
 import DocumentVerification from "./pages/DocumentVerification";
+import RolePermissions from "./pages/RolePermissions";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,6 +32,7 @@ const App = () => (
           <Route path="/apis-manager" element={<ApisManager />} />
           <Route path="/chat" element={<Chat />} />
           <Route path="/document-verification" element={<DocumentVerification />} />
+          <Route path="/role-permissions" element={<RolePermissions />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
