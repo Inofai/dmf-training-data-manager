@@ -1,7 +1,5 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
 
 interface AIChatConfig {
   id: string;
@@ -12,38 +10,31 @@ interface AIChatConfig {
   created_by: string;
 }
 
-export const useAIChatConfig = () => {
-  const { user } = useAuth();
+export const useGlobalAIChatConfig = () => {
   const [chatConfig, setChatConfig] = useState<AIChatConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) {
-      setChatConfig(null);
-      setLoading(false);
-      return;
-    }
-
     const fetchConfig = async () => {
       setLoading(true);
       setError(null);
 
       try {
         const { data, error } = await supabase
-          .from('ai_chat_config')
+          .from<AIChatConfig>('ai_chat_config')
           .select('*')
-          .order('created_at', { ascending: false })
+          .order('created_at', { ascending: false }) // Just in case there are multiple rows
           .limit(1)
           .maybeSingle();
 
         if (error) {
-          console.error('Error fetching AI chat config:', error);
+          console.error('Error fetching global AI chat config:', error);
           setError(error.message);
           return;
         }
 
-        setChatConfig(data);
+        setChatConfig(data || null);
       } catch (err) {
         console.error('Unexpected error:', err);
         setError('Unexpected error occurred');
@@ -53,7 +44,7 @@ export const useAIChatConfig = () => {
     };
 
     fetchConfig();
-  }, [user]);
+  }, []);
 
   return { chatConfig, loading, error };
 };
