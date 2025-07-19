@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 
@@ -22,9 +23,9 @@ export const useGlobalAIChatConfig = () => {
 
       try {
         const { data, error } = await supabase
-          .from<AIChatConfig>('ai_chat_config')
+          .from('ai_chat_config')
           .select('*')
-          .order('created_at', { ascending: false }) // Just in case there are multiple rows
+          .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle();
 
@@ -34,7 +35,7 @@ export const useGlobalAIChatConfig = () => {
           return;
         }
 
-        setChatConfig(data || null);
+        setChatConfig(data);
       } catch (err) {
         console.error('Unexpected error:', err);
         setError('Unexpected error occurred');
