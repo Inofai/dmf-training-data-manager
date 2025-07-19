@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -44,7 +45,7 @@ const Chat = () => {
   }, [messages]);
 
   useEffect(() => {
-    if (configError || !chatConfig?.model || chatConfig.temperature == null) {
+    if (configError || !chatConfig?.base_url || chatConfig.temperature == null) {
       toast({
         title: "Configuration Error",
         description: "AI chat settings are missing or incomplete.",
@@ -54,7 +55,7 @@ const Chat = () => {
   }, [configError, chatConfig, toast]);
 
   const sendMessage = async () => {
-    if (!inputMessage.trim() || !chatConfig?.model || chatConfig.temperature == null) return;
+    if (!inputMessage.trim() || !chatConfig?.base_url || chatConfig.temperature == null) return;
 
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
@@ -68,7 +69,7 @@ const Chat = () => {
     setIsLoading(true);
 
     try {
-      const url = new URL(`${chatConfig.model}/chat`);
+      const url = new URL(`${chatConfig.base_url}/chat`);
       url.searchParams.append("query", inputMessage);
       url.searchParams.append("temperature", chatConfig.temperature.toString());
 
@@ -220,7 +221,7 @@ const Chat = () => {
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Type your message..."
-                disabled={isLoading || !chatConfig?.model || chatConfig.temperature == null}
+                disabled={isLoading || !chatConfig?.base_url || chatConfig.temperature == null}
                 className="flex-1 rounded-full px-4 py-2 shadow-inner bg-white/90"
               />
               <Button
@@ -228,7 +229,7 @@ const Chat = () => {
                 disabled={
                   isLoading ||
                   !inputMessage.trim() ||
-                  !chatConfig?.model ||
+                  !chatConfig?.base_url ||
                   chatConfig.temperature == null
                 }
                 className="rounded-full h-10 w-10 p-2"
