@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -35,20 +34,10 @@ const Chat = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    console.log('Chat page auth state:', {
-      authLoading,
-      configLoading,
-      roleCheckComplete,
-      hasUser: !!user,
-      hasChatConfig: !!chatConfig
-    });
-
     if (!authLoading && roleCheckComplete && !configLoading) {
       if (!user) {
-        console.log('No user found, redirecting to home');
         navigate("/");
       } else if (configError) {
-        console.log('Config error, showing toast but staying on page');
         toast({
           title: "Configuration Error",
           description: "AI chat settings could not be loaded. Please contact an administrator.",
@@ -89,12 +78,7 @@ const Chat = () => {
       const url = new URL(`${chatConfig.base_url}/chat`);
       url.searchParams.append("query", inputMessage);
       url.searchParams.append("temperature", chatConfig.temperature.toString());
-
-      if (chatId) {
-        url.searchParams.append("chat_id", chatId);
-      }
-
-      console.log('Sending request to:', url.toString());
+      if (chatId) url.searchParams.append("chat_id", chatId);
 
       const response = await fetch(url.toString(), {
         method: "POST",
@@ -120,7 +104,6 @@ const Chat = () => {
 
       setMessages(prev => [...prev, botMessage]);
     } catch (error) {
-      console.error("Error sending message:", error);
       toast({
         title: "Error",
         description: "Failed to send message. Please check your chat configuration or try again later.",
@@ -145,7 +128,7 @@ const Chat = () => {
 
   if (authLoading || configLoading || !roleCheckComplete) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-100 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-indigo-100">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-2 text-gray-600">Loading chat...</p>
@@ -161,7 +144,6 @@ const Chat = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 via-white to-indigo-100">
       <Navigation />
-
       <div className="max-w-4xl mx-auto px-4 py-8">
         <Card className="h-[calc(100vh-150px)] flex flex-col backdrop-blur-xl bg-white/70 border border-white/50 shadow-lg rounded-2xl overflow-hidden">
           <CardHeader className="p-6 border-b border-white/20 bg-white/30 backdrop-blur-sm">
@@ -181,16 +163,16 @@ const Chat = () => {
             </div>
           </CardHeader>
 
-          <CardContent className="flex-1 flex flex-col p-4">
+          <CardContent className="flex-1 flex flex-col p-4 min-h-0">
             <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scroll">
               {messages.length === 0 ? (
                 <div className="text-center text-gray-500 mt-8">
                   <Bot className="w-12 h-12 mx-auto mb-4 opacity-50" />
                   {isChatDisabled ? (
-                    <div>
+                    <>
                       <p className="text-lg mb-2">Chat Configuration Required</p>
                       <p className="text-sm">Please configure the AI chat settings to start chatting.</p>
-                    </div>
+                    </>
                   ) : (
                     <p className="text-lg">Start a conversation with the AI assistant!</p>
                   )}
@@ -229,14 +211,8 @@ const Chat = () => {
                   <div className="bg-gray-200 rounded-lg px-4 py-2">
                     <div className="flex space-x-1">
                       <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" />
-                      <div
-                        className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"
-                        style={{ animationDelay: "0.1s" }}
-                      />
-                      <div
-                        className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"
-                        style={{ animationDelay: "0.2s" }}
-                      />
+                      <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: "0.1s" }} />
+                      <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }} />
                     </div>
                   </div>
                 </div>
