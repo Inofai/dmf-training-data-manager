@@ -68,6 +68,33 @@ export type Database = {
         }
         Relationships: []
       }
+      jwt_config: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          refresh_threshold_minutes: number
+          timeout_minutes: number
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          refresh_threshold_minutes?: number
+          timeout_minutes?: number
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          refresh_threshold_minutes?: number
+          timeout_minutes?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -92,6 +119,33 @@ export type Database = {
           id?: string
           last_name?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      role_permissions: {
+        Row: {
+          can_access: boolean
+          created_at: string | null
+          id: string
+          page_route: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string | null
+        }
+        Insert: {
+          can_access?: boolean
+          created_at?: string | null
+          id?: string
+          page_route: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at?: string | null
+        }
+        Update: {
+          can_access?: boolean
+          created_at?: string | null
+          id?: string
+          page_route?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string | null
         }
         Relationships: []
       }

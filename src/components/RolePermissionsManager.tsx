@@ -10,16 +10,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Save, AlertCircle } from "lucide-react";
+import { Plus, Trash2, AlertCircle } from "lucide-react";
+import { Tables, Enums } from "@/integrations/supabase/types";
 
-interface RolePermission {
-  id: string;
-  role: 'admin' | 'user' | 'developer';
-  page_route: string;
-  can_access: boolean;
-  created_at: string;
-  updated_at: string;
-}
+type RolePermission = Tables<"role_permissions">;
+type AppRole = Enums<"app_role">;
 
 const RolePermissionsManager = () => {
   const [permissions, setPermissions] = useState<RolePermission[]>([]);
@@ -28,7 +23,7 @@ const RolePermissionsManager = () => {
   const [newRoute, setNewRoute] = useState('');
   const { toast } = useToast();
 
-  const roles: Array<'admin' | 'user' | 'developer'> = ['admin', 'user', 'developer'];
+  const roles: AppRole[] = ['admin', 'user', 'developer'];
 
   useEffect(() => {
     fetchPermissions();

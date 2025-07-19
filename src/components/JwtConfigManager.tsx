@@ -8,15 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Save, Clock, AlertCircle } from "lucide-react";
+import { Tables } from "@/integrations/supabase/types";
 
-interface JwtConfig {
-  id: string;
-  timeout_minutes: number;
-  refresh_threshold_minutes: number;
-  created_at: string;
-  updated_at: string;
-  created_by: string | null;
-}
+type JwtConfig = Tables<"jwt_config">;
 
 const JwtConfigManager = () => {
   const [config, setConfig] = useState<JwtConfig | null>(null);
@@ -37,9 +31,9 @@ const JwtConfigManager = () => {
         .select('*')
         .order('created_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
+      if (error) {
         throw error;
       }
 
@@ -206,7 +200,7 @@ const JwtConfigManager = () => {
                 <div className="flex justify-between">
                   <span className="text-gray-600">Last Updated:</span>
                   <span className="font-medium">
-                    {new Date(config.updated_at).toLocaleDateString()}
+                    {config.updated_at ? new Date(config.updated_at).toLocaleDateString() : 'Never'}
                   </span>
                 </div>
               </>
