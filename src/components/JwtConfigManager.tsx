@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -8,9 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Save, Clock, AlertCircle } from "lucide-react";
-import { Tables } from "@/integrations/supabase/types";
-
-type JwtConfig = Tables<"jwt_config">;
+import { JwtConfig } from "@/types/jwt-config";
 
 const JwtConfigManager = () => {
   const [config, setConfig] = useState<JwtConfig | null>(null);
@@ -38,7 +35,7 @@ const JwtConfigManager = () => {
       }
 
       if (data) {
-        setConfig(data);
+        setConfig(data as JwtConfig);
         setTimeoutMinutes(data.timeout_minutes);
         setRefreshThresholdMinutes(data.refresh_threshold_minutes);
       }

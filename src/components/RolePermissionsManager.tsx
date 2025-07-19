@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -11,10 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, AlertCircle } from "lucide-react";
-import { Tables, Enums } from "@/integrations/supabase/types";
-
-type RolePermission = Tables<"role_permissions">;
-type AppRole = Enums<"app_role">;
+import { RolePermission, AppRole } from "@/types/role-permissions";
 
 const RolePermissionsManager = () => {
   const [permissions, setPermissions] = useState<RolePermission[]>([]);
@@ -37,7 +33,7 @@ const RolePermissionsManager = () => {
         .order('page_route', { ascending: true });
 
       if (error) throw error;
-      setPermissions(data || []);
+      setPermissions((data || []) as RolePermission[]);
     } catch (error) {
       console.error('Error fetching permissions:', error);
       toast({
