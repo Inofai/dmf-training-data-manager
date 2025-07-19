@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { MessageCircle, Send, Bot, User } from "lucide-react";
+import { MessageCircle, Send, Bot } from "lucide-react";
 
 interface ChatMessage {
   id: string;
@@ -23,7 +23,7 @@ interface ChatResponse {
 }
 
 const Chat = () => {
-  const { user, loading } = useAuth();
+  const { user, loading: authLoading, roleCheckComplete } = useAuth();
   const { chatConfig, loading: configLoading, error: configError } = useAIChatConfig();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -34,28 +34,47 @@ const Chat = () => {
   const [chatId, setChatId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Only redirect when all loading is complete and we have proper auth state
   useEffect(() => {
-    if (!loading && !configLoading && (!user || !chatConfig)) {
-      navigate("/");
+    console.log('Chat page auth state:', {
+      authLoading,
+      configLoading,
+      roleCheckComplete,
+      hasUser: !!user,
+      hasChatConfig: !!chatConfig
+    });
+
+    // Wait for both auth and role check to complete before making redirect decisions
+    if (!authLoading && roleCheckComplete && !configLoading) {
+      if (!user) {
+        console.log('No user found, redirecting to home');
+        navigate("/");
+      } else if (configError) {
+        console.log('Config error, showing toast but staying on page');
+        toast({
+          title: "Configuration Error",
+          description: "AI chat settings could not be loaded. Please contact an administrator.",
+          variant: "destructive",
+        });
+      }
     }
-  }, [user, loading, configLoading, chatConfig, navigate]);
+  }, [user, authLoading, configLoading, roleCheckComplete, configError, navigate, toast]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  useEffect(() => {
-    if (configError || !chatConfig?.base_url || chatConfig.temperature == null) {
-      toast({
-        title: "Configuration Error",
-        description: "AI chat settings are missing or incomplete.",
-        variant: "destructive",
-      });
-    }
-  }, [configError, chatConfig, toast]);
-
   const sendMessage = async () => {
-    if (!inputMessage.trim() || !chatConfig?.base_url || chatConfig.temperature == null) return;
+    if (!inputMessage.trim() || !chatConfig?.base_url || chatConfig.temperature == null) {
+      if (!chatConfig?.base_url || chatConfig.temperature == null) {
+        toast({
+          title: "Configuration Missing",
+          description: "AI chat configuration is not properly set up.",
+          variant: "destructive",
+        });
+      }
+      return;
+    }
 
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
@@ -76,6 +95,8 @@ const Chat = () => {
       if (chatId) {
         url.searchParams.append("chat_id", chatId);
       }
+
+      console.log('Sending request to:', url.toString());
 
       const response = await fetch(url.toString(), {
         method: "POST",
@@ -104,7 +125,7 @@ const Chat = () => {
       console.error("Error sending message:", error);
       toast({
         title: "Error",
-        description: "Failed to send message. Please check your chat config.",
+        description: "Failed to send message. Please check your chat configuration or try again later.",
         variant: "destructive",
       });
     } finally {
@@ -124,20 +145,24 @@ const Chat = () => {
     setChatId(null);
   };
 
-  if (loading || configLoading) {
+  // Show loading while auth or config is loading
+  if (authLoading || configLoading || !roleCheckComplete) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-100 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Loading...</p>
+          <p className="mt-2 text-gray-600">Loading chat...</p>
         </div>
       </div>
     );
   }
 
+  // Don't render anything if user is not authenticated (will redirect)
   if (!user) {
     return null;
   }
+
+  const isChatDisabled = !chatConfig?.base_url || chatConfig.temperature == null;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 via-white to-indigo-100">
@@ -150,10 +175,15 @@ const Chat = () => {
               <MessageCircle className="w-6 h-6" />
               AI Chat Assistant
             </CardTitle>
-            <div className="mt-2">
+            <div className="mt-2 flex items-center justify-between">
               <Button variant="outline" size="sm" onClick={clearChat}>
                 Clear Chat
               </Button>
+              {isChatDisabled && (
+                <div className="text-sm text-amber-600 font-medium">
+                  ⚠️ Chat configuration required
+                </div>
+              )}
             </div>
           </CardHeader>
 
@@ -163,7 +193,14 @@ const Chat = () => {
               {messages.length === 0 ? (
                 <div className="text-center text-gray-500 mt-8">
                   <Bot className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p className="text-lg">Start a conversation with the AI assistant!</p>
+                  {isChatDisabled ? (
+                    <div>
+                      <p className="text-lg mb-2">Chat Configuration Required</p>
+                      <p className="text-sm">Please configure the AI chat settings to start chatting.</p>
+                    </div>
+                  ) : (
+                    <p className="text-lg">Start a conversation with the AI assistant!</p>
+                  )}
                 </div>
               ) : (
                 messages.map((message) => (
@@ -220,18 +257,13 @@ const Chat = () => {
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="Type your message..."
-                disabled={isLoading || !chatConfig?.base_url || chatConfig.temperature == null}
+                placeholder={isChatDisabled ? "Chat configuration required..." : "Type your message..."}
+                disabled={isLoading || isChatDisabled}
                 className="flex-1 rounded-full px-4 py-2 shadow-inner bg-white/90"
               />
               <Button
                 onClick={sendMessage}
-                disabled={
-                  isLoading ||
-                  !inputMessage.trim() ||
-                  !chatConfig?.base_url ||
-                  chatConfig.temperature == null
-                }
+                disabled={isLoading || !inputMessage.trim() || isChatDisabled}
                 className="rounded-full h-10 w-10 p-2"
               >
                 <Send className="w-4 h-4" />
