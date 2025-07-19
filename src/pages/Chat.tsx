@@ -1,8 +1,7 @@
-
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
-import { useAIChatConfig } from "@/hooks/use-ai-chat-config";
+import { useGlobalAIChatConfig } from "@/hooks/use-ai-chat-config";
 import Navigation from "@/components/Navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,7 +23,7 @@ interface ChatResponse {
 
 const Chat = () => {
   const { user, loading: authLoading, roleCheckComplete } = useAuth();
-  const { chatConfig, loading: configLoading, error: configError } = useAIChatConfig();
+  const { chatConfig, loading: configLoading, error: configError } = useGlobalAIChatConfig();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -34,7 +33,6 @@ const Chat = () => {
   const [chatId, setChatId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Only redirect when all loading is complete and we have proper auth state
   useEffect(() => {
     console.log('Chat page auth state:', {
       authLoading,
@@ -44,7 +42,6 @@ const Chat = () => {
       hasChatConfig: !!chatConfig
     });
 
-    // Wait for both auth and role check to complete before making redirect decisions
     if (!authLoading && roleCheckComplete && !configLoading) {
       if (!user) {
         console.log('No user found, redirecting to home');
@@ -145,7 +142,6 @@ const Chat = () => {
     setChatId(null);
   };
 
-  // Show loading while auth or config is loading
   if (authLoading || configLoading || !roleCheckComplete) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-100 flex items-center justify-center">
@@ -157,10 +153,7 @@ const Chat = () => {
     );
   }
 
-  // Don't render anything if user is not authenticated (will redirect)
-  if (!user) {
-    return null;
-  }
+  if (!user) return null;
 
   const isChatDisabled = !chatConfig?.base_url || chatConfig.temperature == null;
 
@@ -188,7 +181,6 @@ const Chat = () => {
           </CardHeader>
 
           <CardContent className="flex-1 flex flex-col p-4">
-            {/* Messages Area */}
             <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scroll">
               {messages.length === 0 ? (
                 <div className="text-center text-gray-500 mt-8">
@@ -251,7 +243,6 @@ const Chat = () => {
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Input Area */}
             <div className="mt-4 flex items-center gap-2 border-t border-gray-200 pt-4">
               <Input
                 value={inputMessage}
