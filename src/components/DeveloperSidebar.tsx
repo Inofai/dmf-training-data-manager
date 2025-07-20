@@ -13,7 +13,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarTrigger,
   SidebarFooter,
 } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +28,7 @@ import {
   Code,
   Crown,
   LogOut,
+  Home,
 } from "lucide-react";
 
 const DeveloperSidebar = () => {
@@ -57,8 +57,9 @@ const DeveloperSidebar = () => {
   const isActivePath = (path: string) => location.pathname === path;
 
   const mainNavItems = [
+    { title: "Dashboard", url: "/", icon: Home },
     { title: "Editor", url: "/editor", icon: Edit },
-    { title: "Dashboard", url: "/dashboard", icon: BarChart3 },
+    { title: "Analytics", url: "/dashboard", icon: BarChart3 },
     { title: "Chat", url: "/chat", icon: MessageCircle },
   ];
 
@@ -70,11 +71,10 @@ const DeveloperSidebar = () => {
   ];
 
   return (
-    <Sidebar className="border-r">
+    <Sidebar className="border-r w-64 min-w-64">
       <SidebarHeader className="p-4">
         <div className="flex items-center justify-between">
           <h1 className="text-lg font-bold text-gray-900">AI Training Platform</h1>
-          <SidebarTrigger />
         </div>
         <div className="flex items-center gap-2 mt-2">
           {isAdmin && (

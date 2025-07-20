@@ -23,10 +23,10 @@ const AppLayout = ({ children }: AppLayoutProps) => {
     );
   }
 
-  // Developer layout with sidebar
+  // Developer layout with fixed sidebar (no collapsible functionality)
   if (isDeveloper) {
     return (
-      <SidebarProvider>
+      <SidebarProvider defaultOpen={true}>
         <div className="min-h-screen flex w-full">
           <DeveloperSidebar />
           <SidebarInset className="flex-1">
