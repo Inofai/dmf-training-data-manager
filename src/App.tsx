@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import AppLayout from "./components/AppLayout";
 import Index from "./pages/Index";
 import Editor from "./pages/Editor";
 import Dashboard from "./pages/Dashboard";
@@ -25,14 +26,14 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
-          <Route path="/editor" element={<Editor />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/api-keys" element={<ApiKeys />} />
-          <Route path="/user-manager" element={<UserManager />} />
-          <Route path="/apis-manager" element={<ApisManager />} />
-          <Route path="/chat" element={<Chat />} />
-          <Route path="/document-verification" element={<DocumentVerification />} />
-          <Route path="/role-permissions" element={<RolePermissions />} />
+          <Route path="/editor" element={<AppLayout><Editor /></AppLayout>} />
+          <Route path="/dashboard" element={<AppLayout><Dashboard /></AppLayout>} />
+          <Route path="/api-keys" element={<AppLayout><ApiKeys /></AppLayout>} />
+          <Route path="/user-manager" element={<AppLayout><UserManager /></AppLayout>} />
+          <Route path="/apis-manager" element={<AppLayout><ApisManager /></AppLayout>} />
+          <Route path="/chat" element={<AppLayout><Chat /></AppLayout>} />
+          <Route path="/document-verification" element={<AppLayout><DocumentVerification /></AppLayout>} />
+          <Route path="/role-permissions" element={<AppLayout><RolePermissions /></AppLayout>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
