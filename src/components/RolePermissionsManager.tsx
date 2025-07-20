@@ -1,16 +1,16 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Plus, AlertCircle } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Plus, Trash2, AlertCircle } from "lucide-react";
 import { RolePermission, AppRole } from "@/types/role-permissions";
-import RolePermissionsTable from "@/components/RolePermissionsTable";
 
 const RolePermissionsManager = () => {
   const [permissions, setPermissions] = useState<RolePermission[]>([]);
@@ -18,7 +18,6 @@ const RolePermissionsManager = () => {
   const [saving, setSaving] = useState(false);
   const [newRoute, setNewRoute] = useState('');
   const { toast } = useToast();
-  const { isDeveloper, isAdmin } = useAuth();
 
   const roles: AppRole[] = ['admin', 'user', 'developer'];
 
@@ -150,6 +149,15 @@ const RolePermissionsManager = () => {
     }
   };
 
+  const getRoleBadgeColor = (role: string) => {
+    switch (role) {
+      case 'admin': return 'bg-purple-100 text-purple-800';
+      case 'developer': return 'bg-blue-100 text-blue-800';
+      case 'user': return 'bg-green-100 text-green-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
   const groupedPermissions = permissions.reduce((acc, permission) => {
     if (!acc[permission.page_route]) {
       acc[permission.page_route] = [];
@@ -172,52 +180,91 @@ const RolePermissionsManager = () => {
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
           Control which user roles can access specific pages. Changes take effect immediately.
-          {isDeveloper ? ' As a developer, you have full access to all role management features.' : 
-           isAdmin ? ' As an admin, you can manage admin and user permissions (developer permissions are protected).' : ''}
         </AlertDescription>
       </Alert>
 
-      {/* Add New Route - Only for developers and admins */}
-      {(isDeveloper || isAdmin) && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Add New Route</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <Label htmlFor="newRoute">Route Path</Label>
-                <Input
-                  id="newRoute"
-                  placeholder="/new-page"
-                  value={newRoute}
-                  onChange={(e) => setNewRoute(e.target.value)}
-                  disabled={saving}
-                />
-              </div>
-              <div className="flex items-end">
-                <Button 
-                  onClick={addNewRoute}
-                  disabled={saving || !newRoute.trim()}
-                  className="flex items-center gap-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  Add Route
-                </Button>
-              </div>
+      {/* Add New Route */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Add New Route</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <Label htmlFor="newRoute">Route Path</Label>
+              <Input
+                id="newRoute"
+                placeholder="/new-page"
+                value={newRoute}
+                onChange={(e) => setNewRoute(e.target.value)}
+                disabled={saving}
+              />
             </div>
-          </CardContent>
-        </Card>
-      )}
+            <div className="flex items-end">
+              <Button 
+                onClick={addNewRoute}
+                disabled={saving || !newRoute.trim()}
+                className="flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                Add Route
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Permissions Table */}
-      <RolePermissionsTable
-        groupedPermissions={groupedPermissions}
-        roles={roles}
-        onUpdatePermission={updatePermission}
-        onDeleteRoute={deleteRoute}
-        saving={saving}
-      />
+      <div className="border rounded-lg overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Route</TableHead>
+              <TableHead>Admin</TableHead>
+              <TableHead>User</TableHead>
+              <TableHead>Developer</TableHead>
+              <TableHead>Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {Object.entries(groupedPermissions).map(([route, routePermissions]) => (
+              <TableRow key={route}>
+                <TableCell className="font-medium">{route}</TableCell>
+                {roles.map(role => {
+                  const permission = routePermissions.find(p => p.role === role);
+                  return (
+                    <TableCell key={role}>
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={permission?.can_access || false}
+                          onCheckedChange={(checked) => 
+                            permission && updatePermission(permission.id, checked)
+                          }
+                          disabled={saving}
+                        />
+                        <Badge className={getRoleBadgeColor(role)}>
+                          {permission?.can_access ? 'Allow' : 'Deny'}
+                        </Badge>
+                      </div>
+                    </TableCell>
+                  );
+                })}
+                <TableCell>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => deleteRoute(route)}
+                    disabled={saving}
+                    className="text-red-600 hover:text-red-700"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
 
       {Object.keys(groupedPermissions).length === 0 && (
         <div className="text-center py-8 text-gray-500">

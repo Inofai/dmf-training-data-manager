@@ -2,6 +2,7 @@
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
+import Navigation from "@/components/Navigation";
 import ApiManagement from "@/components/ApiManagement";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -36,7 +37,7 @@ const ApisManager = () => {
   // Show loading while auth is being determined OR role check is in progress
   if (loading || !roleCheckComplete) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-100 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-2 text-gray-600">
@@ -53,32 +54,36 @@ const ApisManager = () => {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-2xl text-blue-700">
-            <Settings className="w-6 h-6" />
-            APIs Manager
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-gray-600 mb-4">
-            Manage API configurations, endpoints, and integrations. Monitor API health and performance.
-            Only developers can access this functionality.
-          </p>
-          
-          <Alert>
-            <Info className="h-4 w-4" />
-            <AlertDescription>
-              <strong>Important:</strong> Changes to API configurations may affect system functionality. 
-              Test thoroughly before applying changes to production.
-            </AlertDescription>
-          </Alert>
-        </CardContent>
-      </Card>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-100">
+      <Navigation />
+      
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-2xl text-blue-700">
+              <Settings className="w-6 h-6" />
+              APIs Manager
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-gray-600 mb-4">
+              Manage API configurations, endpoints, and integrations. Monitor API health and performance.
+              Only developers can access this functionality.
+            </p>
+            
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertDescription>
+                <strong>Important:</strong> Changes to API configurations may affect system functionality. 
+                Test thoroughly before applying changes to production.
+              </AlertDescription>
+            </Alert>
+          </CardContent>
+        </Card>
 
-      <div className="grid gap-8">
-        <ApiManagement />
+        <div className="grid gap-8">
+          <ApiManagement />
+        </div>
       </div>
     </div>
   );
