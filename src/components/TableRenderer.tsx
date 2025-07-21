@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import CellRenderer from './CellRenderer';
 
 interface TableData {
   headers: string[];
@@ -54,8 +55,8 @@ const TableRenderer: React.FC<TableRendererProps> = ({ content, className = '' }
         <TableHeader>
           <TableRow className="bg-gray-50">
             {tableData.headers.map((header, index) => (
-              <TableHead key={index} className="font-semibold text-gray-800 border-r border-gray-200 last:border-r-0">
-                {header}
+              <TableHead key={index} className="font-semibold text-gray-800 border-r border-gray-200 last:border-r-0 align-top">
+                <CellRenderer content={header} />
               </TableHead>
             ))}
           </TableRow>
@@ -64,8 +65,8 @@ const TableRenderer: React.FC<TableRendererProps> = ({ content, className = '' }
           {tableData.rows.map((row, rowIndex) => (
             <TableRow key={rowIndex} className="hover:bg-gray-50">
               {row.map((cell, cellIndex) => (
-                <TableCell key={cellIndex} className="border-r border-gray-200 last:border-r-0">
-                  {cell}
+                <TableCell key={cellIndex} className="border-r border-gray-200 last:border-r-0 align-top leading-relaxed">
+                  <CellRenderer content={cell} />
                 </TableCell>
               ))}
             </TableRow>
