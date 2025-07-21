@@ -11,8 +11,9 @@ import LoadingState from "@/components/dashboard/LoadingState";
 import DashboardPagination from "@/components/dashboard/DashboardPagination";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDocuments } from "@/hooks/useDocuments";
-import { FileText, Search } from "lucide-react";
+import { FileText, Search, CheckCircle } from "lucide-react";
 
 interface TrainingDocument {
   id: string;
@@ -37,7 +38,9 @@ const Dashboard = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
+  const [trainedCurrentPage, setTrainedCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
+  const [trainedSearchTerm, setTrainedSearchTerm] = useState("");
   const { documents, documentsLoading, fetchDocuments } = useDocuments();
 
   useEffect(() => {
@@ -67,19 +70,39 @@ const Dashboard = () => {
     doc.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Pagination logic
+  // Filter trained documents
+  const trainedDocuments = documents.filter(doc => 
+    doc.trained && doc.title.toLowerCase().includes(trainedSearchTerm.toLowerCase())
+  );
+
+  // Pagination logic for all documents
   const totalPages = Math.ceil(filteredDocuments.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const endIndex = startIndex + ITEMS_PER_PAGE;
   const currentDocuments = filteredDocuments.slice(startIndex, endIndex);
 
+  // Pagination logic for trained documents
+  const trainedTotalPages = Math.ceil(trainedDocuments.length / ITEMS_PER_PAGE);
+  const trainedStartIndex = (trainedCurrentPage - 1) * ITEMS_PER_PAGE;
+  const trainedEndIndex = trainedStartIndex + ITEMS_PER_PAGE;
+  const currentTrainedDocuments = trainedDocuments.slice(trainedStartIndex, trainedEndIndex);
+
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
+  };
+
+  const handleTrainedPageChange = (page: number) => {
+    setTrainedCurrentPage(page);
   };
 
   const handleSearchChange = (value: string) => {
     setSearchTerm(value);
     setCurrentPage(1); // Reset to first page when searching
+  };
+
+  const handleTrainedSearchChange = (value: string) => {
+    setTrainedSearchTerm(value);
+    setTrainedCurrentPage(1); // Reset to first page when searching
   };
 
   if (loading) {
@@ -111,43 +134,98 @@ const Dashboard = () => {
               <FileText className="w-5 h-5 text-blue-600" />
               Your Training Documents
             </CardTitle>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <Input
-                placeholder="Search documents by title..."
-                value={searchTerm}
-                onChange={(e) => handleSearchChange(e.target.value)}
-                className="pl-10"
-              />
-            </div>
           </CardHeader>
           <CardContent>
-            {documentsLoading ? (
-              <LoadingState />
-            ) : filteredDocuments.length === 0 ? (
-              searchTerm ? (
-                <div className="text-center py-8">
-                  <Search className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600">No documents found matching "{searchTerm}"</p>
+            <Tabs defaultValue="all" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="all">All Documents</TabsTrigger>
+                <TabsTrigger value="trained" className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4" />
+                  Trained Only
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="all" className="space-y-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Input
+                    placeholder="Search documents by title..."
+                    value={searchTerm}
+                    onChange={(e) => handleSearchChange(e.target.value)}
+                    className="pl-10"
+                  />
                 </div>
-              ) : (
-                <EmptyDocumentsState />
-              )
-            ) : (
-              <>
-                <DocumentsTable 
-                  documents={currentDocuments}
-                  onDocumentClick={handleDocumentClick}
-                  onDocumentDeleted={fetchDocuments}
-                  startIndex={startIndex}
-                />
-                <DashboardPagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  onPageChange={handlePageChange}
-                />
-              </>
-            )}
+
+                {documentsLoading ? (
+                  <LoadingState />
+                ) : filteredDocuments.length === 0 ? (
+                  searchTerm ? (
+                    <div className="text-center py-8">
+                      <Search className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-600">No documents found matching "{searchTerm}"</p>
+                    </div>
+                  ) : (
+                    <EmptyDocumentsState />
+                  )
+                ) : (
+                  <>
+                    <DocumentsTable 
+                      documents={currentDocuments}
+                      onDocumentClick={handleDocumentClick}
+                      onDocumentDeleted={fetchDocuments}
+                      startIndex={startIndex}
+                    />
+                    <DashboardPagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPageChange={handlePageChange}
+                    />
+                  </>
+                )}
+              </TabsContent>
+
+              <TabsContent value="trained" className="space-y-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Input
+                    placeholder="Search trained documents by title..."
+                    value={trainedSearchTerm}
+                    onChange={(e) => handleTrainedSearchChange(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+
+                {documentsLoading ? (
+                  <LoadingState />
+                ) : trainedDocuments.length === 0 ? (
+                  trainedSearchTerm ? (
+                    <div className="text-center py-8">
+                      <Search className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-600">No trained documents found matching "{trainedSearchTerm}"</p>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <CheckCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-600">No trained documents yet</p>
+                    </div>
+                  )
+                ) : (
+                  <>
+                    <DocumentsTable 
+                      documents={currentTrainedDocuments}
+                      onDocumentClick={handleDocumentClick}
+                      onDocumentDeleted={fetchDocuments}
+                      startIndex={trainedStartIndex}
+                    />
+                    <DashboardPagination
+                      currentPage={trainedCurrentPage}
+                      totalPages={trainedTotalPages}
+                      onPageChange={handleTrainedPageChange}
+                    />
+                  </>
+                )}
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
       </div>

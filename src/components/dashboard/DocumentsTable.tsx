@@ -3,7 +3,7 @@ import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { MessageSquare, Link as LinkIcon, CheckCircle, XCircle } from "lucide-react";
+import { MessageSquare, Link as LinkIcon } from "lucide-react";
 import DocumentStatusActions from "@/components/DocumentStatusActions";
 import DeleteDocumentDialog from "./DeleteDocumentDialog";
 
@@ -88,7 +88,6 @@ const DocumentsTable = ({ documents, onDocumentClick, onDocumentDeleted, startIn
             <TableHead className="w-16">#</TableHead>
             <TableHead>Title</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead>Trained</TableHead>
             <TableHead>Q&A Pairs</TableHead>
             <TableHead>Source Links</TableHead>
             <TableHead>Submitted By</TableHead>
@@ -115,18 +114,6 @@ const DocumentsTable = ({ documents, onDocumentClick, onDocumentDeleted, startIn
                 <Badge className={getStatusColor(doc.status)}>
                   {doc.status}
                 </Badge>
-              </TableCell>
-              <TableCell>
-                <div className="flex items-center gap-1">
-                  {doc.trained ? (
-                    <CheckCircle className="w-4 h-4 text-green-600" />
-                  ) : (
-                    <XCircle className="w-4 h-4 text-red-600" />
-                  )}
-                  <span className={doc.trained ? "text-green-600" : "text-red-600"}>
-                    {doc.trained ? "Yes" : "No"}
-                  </span>
-                </div>
               </TableCell>
               <TableCell>
                 <div className="flex items-center gap-1">
