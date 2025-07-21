@@ -1,8 +1,10 @@
+
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { useGlobalAIChatConfig } from "@/hooks/use-ai-chat-config";
 import Navigation from "@/components/Navigation";
+import MessageRenderer from "@/components/MessageRenderer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -191,7 +193,14 @@ const Chat = () => {
                             : "bg-white text-gray-900 shadow border border-gray-200"
                         }`}
                       >
-                        <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
+                        {message.isUser ? (
+                          <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
+                        ) : (
+                          <MessageRenderer 
+                            content={message.content} 
+                            className="text-sm leading-relaxed"
+                          />
+                        )}
                         <p className="text-[11px] text-right mt-1 opacity-70">
                           {message.timestamp.toLocaleTimeString([], {
                             hour: "2-digit",
