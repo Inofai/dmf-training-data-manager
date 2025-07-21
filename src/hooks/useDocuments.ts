@@ -11,6 +11,7 @@ interface TrainingDocument {
   source_links: string[];
   submitter_id: string;
   submitter_email: string | null;
+  trained: boolean;
   profiles: {
     display_name: string | null;
     first_name: string | null;
@@ -36,6 +37,7 @@ export const useDocuments = () => {
           source_links,
           submitter_id,
           submitter_email,
+          trained,
           profiles (
             display_name,
             first_name,

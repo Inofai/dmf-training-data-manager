@@ -3,7 +3,7 @@ import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { MessageSquare, Link as LinkIcon } from "lucide-react";
+import { MessageSquare, Link as LinkIcon, CheckCircle, XCircle } from "lucide-react";
 import DocumentStatusActions from "@/components/DocumentStatusActions";
 import DeleteDocumentDialog from "./DeleteDocumentDialog";
 
@@ -15,6 +15,7 @@ interface TrainingDocument {
   source_links: string[];
   submitter_id: string;
   submitter_email: string | null;
+  trained: boolean;
   profiles: {
     display_name: string | null;
     first_name: string | null;
@@ -27,9 +28,10 @@ interface DocumentsTableProps {
   documents: TrainingDocument[];
   onDocumentClick: (doc: TrainingDocument, event: React.MouseEvent) => void;
   onDocumentDeleted: () => void;
+  startIndex: number;
 }
 
-const DocumentsTable = ({ documents, onDocumentClick, onDocumentDeleted }: DocumentsTableProps) => {
+const DocumentsTable = ({ documents, onDocumentClick, onDocumentDeleted, startIndex }: DocumentsTableProps) => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'approved':
@@ -83,8 +85,10 @@ const DocumentsTable = ({ documents, onDocumentClick, onDocumentDeleted }: Docum
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead className="w-16">#</TableHead>
             <TableHead>Title</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>Trained</TableHead>
             <TableHead>Q&A Pairs</TableHead>
             <TableHead>Source Links</TableHead>
             <TableHead>Submitted By</TableHead>
@@ -93,12 +97,15 @@ const DocumentsTable = ({ documents, onDocumentClick, onDocumentDeleted }: Docum
           </TableRow>
         </TableHeader>
         <TableBody>
-          {documents.map((doc) => (
+          {documents.map((doc, index) => (
             <TableRow 
               key={doc.id}
               className="cursor-pointer hover:bg-blue-50 transition-colors"
               onClick={(e) => onDocumentClick(doc, e)}
             >
+              <TableCell className="font-medium text-gray-500">
+                {startIndex + index + 1}
+              </TableCell>
               <TableCell className="font-medium max-w-xs">
                 <div className="truncate" title={doc.title}>
                   {doc.title}
@@ -108,6 +115,18 @@ const DocumentsTable = ({ documents, onDocumentClick, onDocumentDeleted }: Docum
                 <Badge className={getStatusColor(doc.status)}>
                   {doc.status}
                 </Badge>
+              </TableCell>
+              <TableCell>
+                <div className="flex items-center gap-1">
+                  {doc.trained ? (
+                    <CheckCircle className="w-4 h-4 text-green-600" />
+                  ) : (
+                    <XCircle className="w-4 h-4 text-red-600" />
+                  )}
+                  <span className={doc.trained ? "text-green-600" : "text-red-600"}>
+                    {doc.trained ? "Yes" : "No"}
+                  </span>
+                </div>
               </TableCell>
               <TableCell>
                 <div className="flex items-center gap-1">

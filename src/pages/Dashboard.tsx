@@ -10,8 +10,9 @@ import EmptyDocumentsState from "@/components/dashboard/EmptyDocumentsState";
 import LoadingState from "@/components/dashboard/LoadingState";
 import DashboardPagination from "@/components/dashboard/DashboardPagination";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { useDocuments } from "@/hooks/useDocuments";
-import { FileText } from "lucide-react";
+import { FileText, Search } from "lucide-react";
 
 interface TrainingDocument {
   id: string;
@@ -21,6 +22,7 @@ interface TrainingDocument {
   source_links: string[];
   submitter_id: string;
   submitter_email: string | null;
+  trained: boolean;
   profiles: {
     display_name: string | null;
     first_name: string | null;
@@ -35,6 +37,7 @@ const Dashboard = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState("");
   const { documents, documentsLoading, fetchDocuments } = useDocuments();
 
   useEffect(() => {
@@ -59,14 +62,24 @@ const Dashboard = () => {
     navigate(`/document-verification?${params.toString()}`);
   };
 
+  // Filter documents based on search term
+  const filteredDocuments = documents.filter(doc => 
+    doc.title.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   // Pagination logic
-  const totalPages = Math.ceil(documents.length / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(filteredDocuments.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const endIndex = startIndex + ITEMS_PER_PAGE;
-  const currentDocuments = documents.slice(startIndex, endIndex);
+  const currentDocuments = filteredDocuments.slice(startIndex, endIndex);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1); // Reset to first page when searching
   };
 
   if (loading) {
@@ -98,18 +111,35 @@ const Dashboard = () => {
               <FileText className="w-5 h-5 text-blue-600" />
               Your Training Documents
             </CardTitle>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Input
+                placeholder="Search documents by title..."
+                value={searchTerm}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                className="pl-10"
+              />
+            </div>
           </CardHeader>
           <CardContent>
             {documentsLoading ? (
               <LoadingState />
-            ) : documents.length === 0 ? (
-              <EmptyDocumentsState />
+            ) : filteredDocuments.length === 0 ? (
+              searchTerm ? (
+                <div className="text-center py-8">
+                  <Search className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600">No documents found matching "{searchTerm}"</p>
+                </div>
+              ) : (
+                <EmptyDocumentsState />
+              )
             ) : (
               <>
                 <DocumentsTable 
                   documents={currentDocuments}
                   onDocumentClick={handleDocumentClick}
                   onDocumentDeleted={fetchDocuments}
+                  startIndex={startIndex}
                 />
                 <DashboardPagination
                   currentPage={currentPage}
