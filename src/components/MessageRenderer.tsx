@@ -1,6 +1,6 @@
-
 import React from 'react';
 import { detectLanguage } from '@/lib/language-utils';
+import TableRenderer from './TableRenderer';
 
 interface MessageRendererProps {
   content: string;
@@ -33,6 +33,16 @@ interface BlockRendererProps {
 }
 
 const BlockRenderer: React.FC<BlockRendererProps> = ({ content, isRTL }) => {
+  // Check if block is a markdown table
+  const isTable = content.includes('|') && content.includes('-') && content.split('\n').length >= 3;
+  if (isTable) {
+    const tableLines = content.split('\n');
+    const hasValidSeparator = tableLines.length >= 2 && tableLines[1].includes('|') && tableLines[1].includes('-');
+    if (hasValidSeparator) {
+      return <TableRenderer content={content} />;
+    }
+  }
+  
   // Check if block is a heading
   const headingMatch = content.match(/^(#{1,6})\s+(.+)/);
   if (headingMatch) {
