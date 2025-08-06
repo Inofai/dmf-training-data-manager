@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDocuments } from "@/hooks/useDocuments";
+import { useDebounce } from "@/hooks/useDebounce";
 import { FileText, Search, CheckCircle } from "lucide-react";
 
 interface TrainingDocument {
@@ -37,17 +38,71 @@ const ITEMS_PER_PAGE = 100;
 const Dashboard = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const [currentPage, setCurrentPage] = useState(1);
+  
+  // State for "All Documents" tab
+  const [allCurrentPage, setAllCurrentPage] = useState(1);
+  const [allSearchTerm, setAllSearchTerm] = useState("");
+  const debouncedAllSearchTerm = useDebounce(allSearchTerm, 300);
+
+  // State for "Trained Only" tab
   const [trainedCurrentPage, setTrainedCurrentPage] = useState(1);
-  const [searchTerm, setSearchTerm] = useState("");
   const [trainedSearchTerm, setTrainedSearchTerm] = useState("");
-  const { documents, documentsLoading, fetchDocuments } = useDocuments();
+  const debouncedTrainedSearchTerm = useDebounce(trainedSearchTerm, 300);
+
+  // Current active tab
+  const [activeTab, setActiveTab] = useState("all");
+
+  // Fetch documents for "All Documents" tab
+  const {
+    documents: allDocuments,
+    totalPages: allTotalPages,
+    documentsLoading: allLoading,
+    fetchDocuments: refetchAllDocuments
+  } = useDocuments({
+    page: allCurrentPage,
+    limit: ITEMS_PER_PAGE,
+    searchTerm: debouncedAllSearchTerm,
+    trainedOnly: false
+  });
+
+  // Fetch documents for "Trained Only" tab
+  const {
+    documents: trainedDocuments,
+    totalPages: trainedTotalPages,
+    documentsLoading: trainedLoading,
+    fetchDocuments: refetchTrainedDocuments
+  } = useDocuments({
+    page: trainedCurrentPage,
+    limit: ITEMS_PER_PAGE,
+    searchTerm: debouncedTrainedSearchTerm,
+    trainedOnly: true
+  });
+
+  // Fetch all documents for stats (we'll use the first hook's result for stats)
+  const {
+    documents: statsDocuments,
+    documentsLoading: statsLoading
+  } = useDocuments({
+    page: 1,
+    limit: 1000, // Get more for stats calculation
+    searchTerm: "",
+    trainedOnly: false
+  });
 
   useEffect(() => {
     if (!loading && !user) {
       navigate("/");
     }
   }, [user, loading, navigate]);
+
+  // Reset page to 1 when search term changes
+  useEffect(() => {
+    setAllCurrentPage(1);
+  }, [debouncedAllSearchTerm]);
+
+  useEffect(() => {
+    setTrainedCurrentPage(1);
+  }, [debouncedTrainedSearchTerm]);
 
   const handleDocumentClick = (doc: TrainingDocument, event: React.MouseEvent) => {
     // Don't navigate if clicking on action buttons
@@ -65,44 +120,25 @@ const Dashboard = () => {
     navigate(`/document-verification?${params.toString()}`);
   };
 
-  // Filter documents based on search term
-  const filteredDocuments = documents.filter(doc => 
-    doc.title.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  // Filter trained documents
-  const trainedDocuments = documents.filter(doc => 
-    doc.trained && doc.title.toLowerCase().includes(trainedSearchTerm.toLowerCase())
-  );
-
-  // Pagination logic for all documents
-  const totalPages = Math.ceil(filteredDocuments.length / ITEMS_PER_PAGE);
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const endIndex = startIndex + ITEMS_PER_PAGE;
-  const currentDocuments = filteredDocuments.slice(startIndex, endIndex);
-
-  // Pagination logic for trained documents
-  const trainedTotalPages = Math.ceil(trainedDocuments.length / ITEMS_PER_PAGE);
-  const trainedStartIndex = (trainedCurrentPage - 1) * ITEMS_PER_PAGE;
-  const trainedEndIndex = trainedStartIndex + ITEMS_PER_PAGE;
-  const currentTrainedDocuments = trainedDocuments.slice(trainedStartIndex, trainedEndIndex);
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+  const handleAllPageChange = (page: number) => {
+    setAllCurrentPage(page);
   };
 
   const handleTrainedPageChange = (page: number) => {
     setTrainedCurrentPage(page);
   };
 
-  const handleSearchChange = (value: string) => {
-    setSearchTerm(value);
-    setCurrentPage(1); // Reset to first page when searching
+  const handleAllSearchChange = (value: string) => {
+    setAllSearchTerm(value);
   };
 
   const handleTrainedSearchChange = (value: string) => {
     setTrainedSearchTerm(value);
-    setTrainedCurrentPage(1); // Reset to first page when searching
+  };
+
+  const handleDocumentDeleted = () => {
+    refetchAllDocuments();
+    refetchTrainedDocuments();
   };
 
   if (loading) {
@@ -120,13 +156,17 @@ const Dashboard = () => {
     return null;
   }
 
+  // Calculate start index for table numbering
+  const allStartIndex = (allCurrentPage - 1) * ITEMS_PER_PAGE;
+  const trainedStartIndex = (trainedCurrentPage - 1) * ITEMS_PER_PAGE;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-100">
       <Navigation />
       
       <div className="max-w-7xl mx-auto px-4 py-8">
         <DashboardHeader />
-        <DocumentStats documents={documents} />
+        <DocumentStats documents={statsDocuments} />
 
         <Card className="shadow-xl border-0 bg-white">
           <CardHeader>
@@ -136,7 +176,7 @@ const Dashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="all" className="w-full">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="all">All Documents</TabsTrigger>
                 <TabsTrigger value="trained" className="flex items-center gap-2">
@@ -150,19 +190,19 @@ const Dashboard = () => {
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                   <Input
                     placeholder="Search documents by title..."
-                    value={searchTerm}
-                    onChange={(e) => handleSearchChange(e.target.value)}
+                    value={allSearchTerm}
+                    onChange={(e) => handleAllSearchChange(e.target.value)}
                     className="pl-10"
                   />
                 </div>
 
-                {documentsLoading ? (
+                {allLoading ? (
                   <LoadingState />
-                ) : filteredDocuments.length === 0 ? (
-                  searchTerm ? (
+                ) : allDocuments.length === 0 ? (
+                  debouncedAllSearchTerm ? (
                     <div className="text-center py-8">
                       <Search className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-600">No documents found matching "{searchTerm}"</p>
+                      <p className="text-gray-600">No documents found matching "{debouncedAllSearchTerm}"</p>
                     </div>
                   ) : (
                     <EmptyDocumentsState />
@@ -170,15 +210,15 @@ const Dashboard = () => {
                 ) : (
                   <>
                     <DocumentsTable 
-                      documents={currentDocuments}
+                      documents={allDocuments}
                       onDocumentClick={handleDocumentClick}
-                      onDocumentDeleted={fetchDocuments}
-                      startIndex={startIndex}
+                      onDocumentDeleted={handleDocumentDeleted}
+                      startIndex={allStartIndex}
                     />
                     <DashboardPagination
-                      currentPage={currentPage}
-                      totalPages={totalPages}
-                      onPageChange={handlePageChange}
+                      currentPage={allCurrentPage}
+                      totalPages={allTotalPages}
+                      onPageChange={handleAllPageChange}
                     />
                   </>
                 )}
@@ -195,13 +235,13 @@ const Dashboard = () => {
                   />
                 </div>
 
-                {documentsLoading ? (
+                {trainedLoading ? (
                   <LoadingState />
                 ) : trainedDocuments.length === 0 ? (
-                  trainedSearchTerm ? (
+                  debouncedTrainedSearchTerm ? (
                     <div className="text-center py-8">
                       <Search className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-600">No trained documents found matching "{trainedSearchTerm}"</p>
+                      <p className="text-gray-600">No trained documents found matching "{debouncedTrainedSearchTerm}"</p>
                     </div>
                   ) : (
                     <div className="text-center py-8">
@@ -212,9 +252,9 @@ const Dashboard = () => {
                 ) : (
                   <>
                     <DocumentsTable 
-                      documents={currentTrainedDocuments}
+                      documents={trainedDocuments}
                       onDocumentClick={handleDocumentClick}
-                      onDocumentDeleted={fetchDocuments}
+                      onDocumentDeleted={handleDocumentDeleted}
                       startIndex={trainedStartIndex}
                     />
                     <DashboardPagination
