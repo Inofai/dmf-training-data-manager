@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -78,17 +77,6 @@ const Dashboard = () => {
     trainedOnly: true
   });
 
-  // Fetch all documents for stats (we'll use the first hook's result for stats)
-  const {
-    documents: statsDocuments,
-    documentsLoading: statsLoading
-  } = useDocuments({
-    page: 1,
-    limit: 1000, // Get more for stats calculation
-    searchTerm: "",
-    trainedOnly: false
-  });
-
   useEffect(() => {
     if (!loading && !user) {
       navigate("/");
@@ -166,7 +154,7 @@ const Dashboard = () => {
       
       <div className="max-w-7xl mx-auto px-4 py-8">
         <DashboardHeader />
-        <DocumentStats documents={statsDocuments} />
+        <DocumentStats />
 
         <Card className="shadow-xl border-0 bg-white">
           <CardHeader>

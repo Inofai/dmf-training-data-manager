@@ -1,19 +1,30 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, CheckCircle, Clock, XCircle } from "lucide-react";
+import { useDocumentStats } from "@/hooks/useDocumentStats";
 
-interface DocumentStatsProps {
-  documents: any[];
-}
+const DocumentStats = () => {
+  const { stats, loading } = useDocumentStats();
 
-const DocumentStats = ({ documents }: DocumentStatsProps) => {
-  const stats = documents.reduce((acc, doc) => {
-    acc.total++;
-    if (doc.status === 'approved') acc.approved++;
-    else if (doc.status === 'rejected') acc.rejected++;
-    else acc.pending++;
-    return acc;
-  }, { total: 0, approved: 0, rejected: 0, pending: 0 });
+  if (loading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        {[...Array(4)].map((_, i) => (
+          <Card key={i}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+              </CardTitle>
+              <div className="h-4 w-4 bg-gray-200 rounded animate-pulse"></div>
+            </CardHeader>
+            <CardContent>
+              <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
