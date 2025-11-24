@@ -44,26 +44,26 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-100">
       <Navigation />
       
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        <div className="text-center mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
             Welcome back, {displayName}!
           </h1>
-          <p className="text-gray-600">
+          <p className="text-sm sm:text-base text-gray-600 px-4">
             Create training content and let AI extract question-answer pairs automatically.
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid sm:grid-cols-2 gap-4 sm:gap-6">
           <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate("/editor")}>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-blue-600">
+            <CardHeader className="p-4 sm:p-6">
+              <CardTitle className="flex items-center gap-2 text-blue-600 text-lg sm:text-xl">
                 <FileText className="w-5 h-5" />
                 Content Editor
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <p className="text-gray-600 mb-4">
+            <CardContent className="p-4 sm:p-6 pt-0">
+              <p className="text-sm sm:text-base text-gray-600 mb-4">
                 Create rich text documents with formatting, links, and structure. Our AI will automatically extract training questions and answers.
               </p>
               <Button className="w-full">Start Creating</Button>
@@ -71,14 +71,14 @@ const Index = () => {
           </Card>
 
           <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate("/dashboard")}>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-green-600">
+            <CardHeader className="p-4 sm:p-6">
+              <CardTitle className="flex items-center gap-2 text-green-600 text-lg sm:text-xl">
                 <BarChart3 className="w-5 h-5" />
                 Dashboard
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <p className="text-gray-600 mb-4">
+            <CardContent className="p-4 sm:p-6 pt-0">
+              <p className="text-sm sm:text-base text-gray-600 mb-4">
                 View all your processed training documents, manage question-answer pairs, and track the status of your submissions.
               </p>
               <Button variant="outline" className="w-full">View Dashboard</Button>
@@ -86,25 +86,25 @@ const Index = () => {
           </Card>
         </div>
 
-        <Card className="mt-8 bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-blue-700">
+        <Card className="mt-6 sm:mt-8 bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="flex items-center gap-2 text-blue-700 text-lg sm:text-xl">
               <Brain className="w-5 h-5" />
               How It Works
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-3 p-4 sm:p-6 pt-0">
             <div className="flex items-start gap-3">
-              <div className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold">1</div>
-              <p className="text-gray-700">Write or paste your training content in the rich text editor</p>
+              <div className="w-6 h-6 sm:w-7 sm:h-7 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold shrink-0">1</div>
+              <p className="text-sm sm:text-base text-gray-700">Write or paste your training content in the rich text editor</p>
             </div>
             <div className="flex items-start gap-3">
-              <div className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold">2</div>
-              <p className="text-gray-700">AI processes your content and extracts relevant question-answer pairs</p>
+              <div className="w-6 h-6 sm:w-7 sm:h-7 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold shrink-0">2</div>
+              <p className="text-sm sm:text-base text-gray-700">AI processes your content and extracts relevant question-answer pairs</p>
             </div>
             <div className="flex items-start gap-3">
-              <div className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold">3</div>
-              <p className="text-gray-700">Review and manage your training data in the dashboard</p>
+              <div className="w-6 h-6 sm:w-7 sm:h-7 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold shrink-0">3</div>
+              <p className="text-sm sm:text-base text-gray-700">Review and manage your training data in the dashboard</p>
             </div>
           </CardContent>
         </Card>
