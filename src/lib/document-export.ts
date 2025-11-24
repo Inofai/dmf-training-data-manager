@@ -1,6 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { Document, Paragraph, TextRun, Table, TableCell, TableRow, HeadingLevel, AlignmentType, WidthType } from "docx";
+import { detectLanguage, isRTLLanguage } from "./language-utils";
 
 export interface ExportDocument {
   id: string;
@@ -187,26 +189,62 @@ export const exportToPDF = (documents: ExportDocument[], filename: string) => {
       yPosition = 20;
     }
     
+    // Detect if content contains RTL text
+    const titleLang = detectLanguage(document.title);
+    const isRTL = isRTLLanguage(titleLang);
+    
     // Document header
     doc.setFontSize(12);
     doc.setFont(undefined, "bold");
-    doc.text(`Document ${docIndex + 1}: ${document.title}`, 14, yPosition);
+    const titleText = `Document ${docIndex + 1}: ${document.title}`;
+    if (isRTL) {
+      // For RTL, align right
+      const pageWidth = doc.internal.pageSize.getWidth();
+      doc.text(titleText, pageWidth - 14, yPosition, { align: "right" });
+    } else {
+      doc.text(titleText, 14, yPosition);
+    }
     yPosition += 7;
     
     doc.setFontSize(9);
     doc.setFont(undefined, "normal");
-    doc.text(`Status: ${document.status} | Trained: ${document.trained ? "Yes" : "No"}`, 14, yPosition);
+    const statusText = `Status: ${document.status} | Trained: ${document.trained ? "Yes" : "No"}`;
+    if (isRTL) {
+      const pageWidth = doc.internal.pageSize.getWidth();
+      doc.text(statusText, pageWidth - 14, yPosition, { align: "right" });
+    } else {
+      doc.text(statusText, 14, yPosition);
+    }
     yPosition += 5;
-    doc.text(`Created: ${new Date(document.created_at).toLocaleDateString()}`, 14, yPosition);
+    
+    const createdText = `Created: ${new Date(document.created_at).toLocaleDateString()}`;
+    if (isRTL) {
+      const pageWidth = doc.internal.pageSize.getWidth();
+      doc.text(createdText, pageWidth - 14, yPosition, { align: "right" });
+    } else {
+      doc.text(createdText, 14, yPosition);
+    }
     yPosition += 5;
     
     if (document.submitter_email) {
-      doc.text(`Submitter: ${document.submitter_email}`, 14, yPosition);
+      const submitterText = `Submitter: ${document.submitter_email}`;
+      if (isRTL) {
+        const pageWidth = doc.internal.pageSize.getWidth();
+        doc.text(submitterText, pageWidth - 14, yPosition, { align: "right" });
+      } else {
+        doc.text(submitterText, 14, yPosition);
+      }
       yPosition += 5;
     }
     
     if (document.source_links.length > 0) {
-      doc.text(`Sources: ${document.source_links.join(", ")}`, 14, yPosition);
+      const sourcesText = `Sources: ${document.source_links.join(", ")}`;
+      if (isRTL) {
+        const pageWidth = doc.internal.pageSize.getWidth();
+        doc.text(sourcesText, pageWidth - 14, yPosition, { align: "right" });
+      } else {
+        doc.text(sourcesText, 14, yPosition);
+      }
       yPosition += 5;
     }
     
@@ -214,24 +252,35 @@ export const exportToPDF = (documents: ExportDocument[], filename: string) => {
     
     // Q&A Pairs
     if (document.qa_pairs.length > 0) {
-      const tableData = document.qa_pairs.map((qa, index) => [
-        `Q${index + 1}`,
-        qa.question.substring(0, 80) + (qa.question.length > 80 ? "..." : ""),
-        qa.answer.substring(0, 80) + (qa.answer.length > 80 ? "..." : ""),
-        `v${qa.version}`,
-      ]);
+      const tableData = document.qa_pairs.map((qa, index) => {
+        const qLang = detectLanguage(qa.question);
+        const aLang = detectLanguage(qa.answer);
+        return [
+          `Q${index + 1}`,
+          qa.question.substring(0, 100) + (qa.question.length > 100 ? "..." : ""),
+          qa.answer.substring(0, 100) + (qa.answer.length > 100 ? "..." : ""),
+          `v${qa.version}`,
+        ];
+      });
       
       autoTable(doc, {
         startY: yPosition,
         head: [["#", "Question", "Answer", "Ver"]],
         body: tableData,
         theme: "grid",
-        styles: { fontSize: 8, cellPadding: 2 },
+        styles: { 
+          fontSize: 8, 
+          cellPadding: 2,
+          halign: isRTL ? 'right' : 'left',
+        },
+        headStyles: {
+          halign: isRTL ? 'right' : 'left',
+        },
         columnStyles: {
-          0: { cellWidth: 15 },
+          0: { cellWidth: 15, halign: 'center' },
           1: { cellWidth: 70 },
           2: { cellWidth: 70 },
-          3: { cellWidth: 15 },
+          3: { cellWidth: 15, halign: 'center' },
         },
         margin: { left: 14 },
       });
@@ -240,11 +289,230 @@ export const exportToPDF = (documents: ExportDocument[], filename: string) => {
     } else {
       doc.setFontSize(8);
       doc.setTextColor(150);
-      doc.text("No Q&A pairs", 14, yPosition);
+      const noPairsText = "No Q&A pairs";
+      if (isRTL) {
+        const pageWidth = doc.internal.pageSize.getWidth();
+        doc.text(noPairsText, pageWidth - 14, yPosition, { align: "right" });
+      } else {
+        doc.text(noPairsText, 14, yPosition);
+      }
       doc.setTextColor(0);
       yPosition += 10;
     }
   });
   
   doc.save(filename);
+};
+
+export const exportToWord = async (documents: ExportDocument[], filename: string) => {
+  const sections: any[] = [];
+  
+  // Title section
+  const titleParagraphs = [
+    new Paragraph({
+      text: "Training Documents Export",
+      heading: HeadingLevel.HEADING_1,
+      spacing: { after: 200 },
+    }),
+    new Paragraph({
+      text: `Generated: ${new Date().toLocaleString()}`,
+      spacing: { after: 100 },
+    }),
+    new Paragraph({
+      text: `Total Documents: ${documents.length}`,
+      spacing: { after: 400 },
+    }),
+  ];
+  
+  const documentParagraphs: any[] = [];
+  
+  documents.forEach((document, docIndex) => {
+    // Detect RTL
+    const titleLang = detectLanguage(document.title);
+    const isRTL = isRTLLanguage(titleLang);
+    
+    // Document header
+    documentParagraphs.push(
+      new Paragraph({
+        text: `Document ${docIndex + 1}: ${document.title}`,
+        heading: HeadingLevel.HEADING_2,
+        spacing: { before: 300, after: 200 },
+        bidirectional: isRTL,
+        alignment: isRTL ? AlignmentType.RIGHT : AlignmentType.LEFT,
+      })
+    );
+    
+    documentParagraphs.push(
+      new Paragraph({
+        children: [
+          new TextRun({ text: "Status: ", bold: true }),
+          new TextRun(document.status),
+          new TextRun({ text: " | Trained: ", bold: true }),
+          new TextRun(document.trained ? "Yes" : "No"),
+        ],
+        spacing: { after: 100 },
+        bidirectional: isRTL,
+        alignment: isRTL ? AlignmentType.RIGHT : AlignmentType.LEFT,
+      })
+    );
+    
+    documentParagraphs.push(
+      new Paragraph({
+        children: [
+          new TextRun({ text: "Created: ", bold: true }),
+          new TextRun(new Date(document.created_at).toLocaleDateString()),
+        ],
+        spacing: { after: 100 },
+        bidirectional: isRTL,
+        alignment: isRTL ? AlignmentType.RIGHT : AlignmentType.LEFT,
+      })
+    );
+    
+    if (document.submitter_email) {
+      documentParagraphs.push(
+        new Paragraph({
+          children: [
+            new TextRun({ text: "Submitter: ", bold: true }),
+            new TextRun(document.submitter_email),
+          ],
+          spacing: { after: 100 },
+          bidirectional: isRTL,
+          alignment: isRTL ? AlignmentType.RIGHT : AlignmentType.LEFT,
+        })
+      );
+    }
+    
+    if (document.source_links.length > 0) {
+      documentParagraphs.push(
+        new Paragraph({
+          children: [
+            new TextRun({ text: "Sources: ", bold: true }),
+            new TextRun(document.source_links.join(", ")),
+          ],
+          spacing: { after: 200 },
+          bidirectional: isRTL,
+          alignment: isRTL ? AlignmentType.RIGHT : AlignmentType.LEFT,
+        })
+      );
+    }
+    
+    // Q&A Pairs
+    if (document.qa_pairs.length > 0) {
+      documentParagraphs.push(
+        new Paragraph({
+          text: "Q&A Pairs",
+          heading: HeadingLevel.HEADING_3,
+          spacing: { before: 200, after: 200 },
+          bidirectional: isRTL,
+          alignment: isRTL ? AlignmentType.RIGHT : AlignmentType.LEFT,
+        })
+      );
+      
+      const tableRows = [
+        new TableRow({
+          children: [
+            new TableCell({
+              children: [new Paragraph({ children: [new TextRun({ text: "#", bold: true })] })],
+              width: { size: 10, type: WidthType.PERCENTAGE },
+            }),
+            new TableCell({
+              children: [new Paragraph({ children: [new TextRun({ text: "Question", bold: true })] })],
+              width: { size: 40, type: WidthType.PERCENTAGE },
+            }),
+            new TableCell({
+              children: [new Paragraph({ children: [new TextRun({ text: "Answer", bold: true })] })],
+              width: { size: 40, type: WidthType.PERCENTAGE },
+            }),
+            new TableCell({
+              children: [new Paragraph({ children: [new TextRun({ text: "Version", bold: true })] })],
+              width: { size: 10, type: WidthType.PERCENTAGE },
+            }),
+          ],
+        }),
+      ];
+      
+      document.qa_pairs.forEach((qa, index) => {
+        const qLang = detectLanguage(qa.question);
+        const aLang = detectLanguage(qa.answer);
+        const qIsRTL = isRTLLanguage(qLang);
+        const aIsRTL = isRTLLanguage(aLang);
+        
+        tableRows.push(
+          new TableRow({
+            children: [
+              new TableCell({
+                children: [new Paragraph({ text: `Q${index + 1}` })],
+              }),
+              new TableCell({
+                children: [
+                  new Paragraph({
+                    text: qa.question,
+                    bidirectional: qIsRTL,
+                    alignment: qIsRTL ? AlignmentType.RIGHT : AlignmentType.LEFT,
+                  }),
+                ],
+              }),
+              new TableCell({
+                children: [
+                  new Paragraph({
+                    text: qa.answer,
+                    bidirectional: aIsRTL,
+                    alignment: aIsRTL ? AlignmentType.RIGHT : AlignmentType.LEFT,
+                  }),
+                ],
+              }),
+              new TableCell({
+                children: [new Paragraph({ text: `v${qa.version}` })],
+              }),
+            ],
+          })
+        );
+      });
+      
+      const table = new Table({
+        rows: tableRows,
+        width: { size: 100, type: WidthType.PERCENTAGE },
+      });
+      
+      documentParagraphs.push(table);
+    } else {
+      documentParagraphs.push(
+        new Paragraph({
+          text: "No Q&A pairs",
+          spacing: { after: 200 },
+          bidirectional: isRTL,
+          alignment: isRTL ? AlignmentType.RIGHT : AlignmentType.LEFT,
+        })
+      );
+    }
+    
+    // Add spacing between documents
+    documentParagraphs.push(
+      new Paragraph({
+        text: "",
+        spacing: { after: 400 },
+      })
+    );
+  });
+  
+  const doc = new Document({
+    sections: [
+      {
+        children: [...titleParagraphs, ...documentParagraphs],
+      },
+    ],
+  });
+  
+  // Generate and download
+  const { Packer } = await import("docx");
+  const blob = await Packer.toBlob(doc);
+  const link = document.createElement("a");
+  const url = URL.createObjectURL(blob);
+  
+  link.setAttribute("href", url);
+  link.setAttribute("download", filename);
+  link.style.visibility = "hidden";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 };

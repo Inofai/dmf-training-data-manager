@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileText, CheckCircle, Clock, XCircle, Download } from "lucide-react";
 import { useDocumentStats } from "@/hooks/useDocumentStats";
-import { fetchDocumentsForExport, exportToCSV, exportToJSON, exportToPDF } from "@/lib/document-export";
+import { fetchDocumentsForExport, exportToCSV, exportToJSON, exportToPDF, exportToWord } from "@/lib/document-export";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import {
@@ -17,7 +17,7 @@ const DocumentStats = () => {
   const { toast } = useToast();
   const [downloadingType, setDownloadingType] = useState<string | null>(null);
 
-  const handleDownload = async (type: string, format: 'csv' | 'json' | 'pdf' = 'csv') => {
+  const handleDownload = async (type: string, format: 'csv' | 'json' | 'pdf' | 'word' = 'csv') => {
     try {
       setDownloadingType(type);
       
@@ -34,14 +34,17 @@ const DocumentStats = () => {
       }
 
       const timestamp = new Date().toISOString().split('T')[0];
-      const filename = `documents_${type}_${timestamp}.${format}`;
+      const extension = format === 'word' ? 'docx' : format;
+      const filename = `documents_${type}_${timestamp}.${extension}`;
       
       if (format === 'csv') {
         exportToCSV(documents, filename);
       } else if (format === 'json') {
         exportToJSON(documents, filename);
-      } else {
+      } else if (format === 'pdf') {
         exportToPDF(documents, filename);
+      } else {
+        await exportToWord(documents, filename);
       }
       
       toast({
@@ -112,6 +115,9 @@ const DocumentStats = () => {
                 <DropdownMenuItem onClick={() => handleDownload('all', 'pdf')}>
                   Export as PDF
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleDownload('all', 'word')}>
+                  Export as Word
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -147,6 +153,9 @@ const DocumentStats = () => {
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleDownload('approved', 'pdf')}>
                   Export as PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleDownload('approved', 'word')}>
+                  Export as Word
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -184,6 +193,9 @@ const DocumentStats = () => {
                 <DropdownMenuItem onClick={() => handleDownload('pending', 'pdf')}>
                   Export as PDF
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleDownload('pending', 'word')}>
+                  Export as Word
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -219,6 +231,9 @@ const DocumentStats = () => {
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleDownload('rejected', 'pdf')}>
                   Export as PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleDownload('rejected', 'word')}>
+                  Export as Word
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
