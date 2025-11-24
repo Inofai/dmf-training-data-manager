@@ -152,24 +152,28 @@ const Dashboard = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-100">
       <Navigation />
       
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         <DashboardHeader />
         <DocumentStats />
 
         <Card className="shadow-xl border-0 bg-white">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
               <FileText className="w-5 h-5 text-blue-600" />
               Your Training Documents
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 sm:p-6">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="all">All Documents</TabsTrigger>
-                <TabsTrigger value="trained" className="flex items-center gap-2">
+              <TabsList className="grid w-full grid-cols-2 mb-4">
+                <TabsTrigger value="all" className="text-sm">
+                  <span className="hidden sm:inline">All Documents</span>
+                  <span className="sm:hidden">All</span>
+                </TabsTrigger>
+                <TabsTrigger value="trained" className="flex items-center gap-2 text-sm">
                   <CheckCircle className="w-4 h-4" />
-                  Trained Only
+                  <span className="hidden sm:inline">Trained Only</span>
+                  <span className="sm:hidden">Trained</span>
                 </TabsTrigger>
               </TabsList>
 
