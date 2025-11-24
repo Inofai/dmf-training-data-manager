@@ -2,16 +2,22 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileText, CheckCircle, Clock, XCircle, Download } from "lucide-react";
 import { useDocumentStats } from "@/hooks/useDocumentStats";
-import { fetchDocumentsForExport, exportToCSV, exportToJSON } from "@/lib/document-export";
+import { fetchDocumentsForExport, exportToCSV, exportToJSON, exportToPDF } from "@/lib/document-export";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const DocumentStats = () => {
   const { stats, loading } = useDocumentStats();
   const { toast } = useToast();
   const [downloadingType, setDownloadingType] = useState<string | null>(null);
 
-  const handleDownload = async (type: string, format: 'csv' | 'json' = 'csv') => {
+  const handleDownload = async (type: string, format: 'csv' | 'json' | 'pdf' = 'csv') => {
     try {
       setDownloadingType(type);
       
@@ -32,8 +38,10 @@ const DocumentStats = () => {
       
       if (format === 'csv') {
         exportToCSV(documents, filename);
-      } else {
+      } else if (format === 'json') {
         exportToJSON(documents, filename);
+      } else {
+        exportToPDF(documents, filename);
       }
       
       toast({
@@ -82,16 +90,30 @@ const DocumentStats = () => {
         <CardContent>
           <div className="flex items-center justify-between">
             <div className="text-2xl font-bold">{stats.total}</div>
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={() => handleDownload('all', 'csv')}
-              disabled={downloadingType === 'all' || stats.total === 0}
-              className="h-8 w-8"
-              title="Download all documents"
-            >
-              <Download className={`h-4 w-4 ${downloadingType === 'all' ? 'animate-pulse' : ''}`} />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  disabled={downloadingType === 'all' || stats.total === 0}
+                  className="h-8 w-8"
+                  title="Download all documents"
+                >
+                  <Download className={`h-4 w-4 ${downloadingType === 'all' ? 'animate-pulse' : ''}`} />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => handleDownload('all', 'csv')}>
+                  Export as CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleDownload('all', 'json')}>
+                  Export as JSON
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleDownload('all', 'pdf')}>
+                  Export as PDF
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </CardContent>
       </Card>
@@ -104,16 +126,30 @@ const DocumentStats = () => {
         <CardContent>
           <div className="flex items-center justify-between">
             <div className="text-2xl font-bold text-green-600">{stats.approved}</div>
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={() => handleDownload('approved', 'csv')}
-              disabled={downloadingType === 'approved' || stats.approved === 0}
-              className="h-8 w-8"
-              title="Download approved documents"
-            >
-              <Download className={`h-4 w-4 ${downloadingType === 'approved' ? 'animate-pulse' : ''}`} />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  disabled={downloadingType === 'approved' || stats.approved === 0}
+                  className="h-8 w-8"
+                  title="Download approved documents"
+                >
+                  <Download className={`h-4 w-4 ${downloadingType === 'approved' ? 'animate-pulse' : ''}`} />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => handleDownload('approved', 'csv')}>
+                  Export as CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleDownload('approved', 'json')}>
+                  Export as JSON
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleDownload('approved', 'pdf')}>
+                  Export as PDF
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </CardContent>
       </Card>
@@ -126,16 +162,30 @@ const DocumentStats = () => {
         <CardContent>
           <div className="flex items-center justify-between">
             <div className="text-2xl font-bold text-yellow-600">{stats.pending}</div>
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={() => handleDownload('pending', 'csv')}
-              disabled={downloadingType === 'pending' || stats.pending === 0}
-              className="h-8 w-8"
-              title="Download pending documents"
-            >
-              <Download className={`h-4 w-4 ${downloadingType === 'pending' ? 'animate-pulse' : ''}`} />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  disabled={downloadingType === 'pending' || stats.pending === 0}
+                  className="h-8 w-8"
+                  title="Download pending documents"
+                >
+                  <Download className={`h-4 w-4 ${downloadingType === 'pending' ? 'animate-pulse' : ''}`} />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => handleDownload('pending', 'csv')}>
+                  Export as CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleDownload('pending', 'json')}>
+                  Export as JSON
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleDownload('pending', 'pdf')}>
+                  Export as PDF
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </CardContent>
       </Card>
@@ -148,16 +198,30 @@ const DocumentStats = () => {
         <CardContent>
           <div className="flex items-center justify-between">
             <div className="text-2xl font-bold text-red-600">{stats.rejected}</div>
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={() => handleDownload('rejected', 'csv')}
-              disabled={downloadingType === 'rejected' || stats.rejected === 0}
-              className="h-8 w-8"
-              title="Download rejected documents"
-            >
-              <Download className={`h-4 w-4 ${downloadingType === 'rejected' ? 'animate-pulse' : ''}`} />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  disabled={downloadingType === 'rejected' || stats.rejected === 0}
+                  className="h-8 w-8"
+                  title="Download rejected documents"
+                >
+                  <Download className={`h-4 w-4 ${downloadingType === 'rejected' ? 'animate-pulse' : ''}`} />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => handleDownload('rejected', 'csv')}>
+                  Export as CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleDownload('rejected', 'json')}>
+                  Export as JSON
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleDownload('rejected', 'pdf')}>
+                  Export as PDF
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </CardContent>
       </Card>

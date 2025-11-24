@@ -1,4 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 export interface ExportDocument {
   id: string;
@@ -164,4 +166,85 @@ export const exportToJSON = (documents: ExportDocument[], filename: string) => {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+};
+
+export const exportToPDF = (documents: ExportDocument[], filename: string) => {
+  const doc = new jsPDF();
+  
+  // Title
+  doc.setFontSize(16);
+  doc.text("Training Documents Export", 14, 15);
+  doc.setFontSize(10);
+  doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 22);
+  doc.text(`Total Documents: ${documents.length}`, 14, 27);
+  
+  let yPosition = 35;
+  
+  documents.forEach((document, docIndex) => {
+    // Check if we need a new page
+    if (yPosition > 250) {
+      doc.addPage();
+      yPosition = 20;
+    }
+    
+    // Document header
+    doc.setFontSize(12);
+    doc.setFont(undefined, "bold");
+    doc.text(`Document ${docIndex + 1}: ${document.title}`, 14, yPosition);
+    yPosition += 7;
+    
+    doc.setFontSize(9);
+    doc.setFont(undefined, "normal");
+    doc.text(`Status: ${document.status} | Trained: ${document.trained ? "Yes" : "No"}`, 14, yPosition);
+    yPosition += 5;
+    doc.text(`Created: ${new Date(document.created_at).toLocaleDateString()}`, 14, yPosition);
+    yPosition += 5;
+    
+    if (document.submitter_email) {
+      doc.text(`Submitter: ${document.submitter_email}`, 14, yPosition);
+      yPosition += 5;
+    }
+    
+    if (document.source_links.length > 0) {
+      doc.text(`Sources: ${document.source_links.join(", ")}`, 14, yPosition);
+      yPosition += 5;
+    }
+    
+    yPosition += 3;
+    
+    // Q&A Pairs
+    if (document.qa_pairs.length > 0) {
+      const tableData = document.qa_pairs.map((qa, index) => [
+        `Q${index + 1}`,
+        qa.question.substring(0, 80) + (qa.question.length > 80 ? "..." : ""),
+        qa.answer.substring(0, 80) + (qa.answer.length > 80 ? "..." : ""),
+        `v${qa.version}`,
+      ]);
+      
+      autoTable(doc, {
+        startY: yPosition,
+        head: [["#", "Question", "Answer", "Ver"]],
+        body: tableData,
+        theme: "grid",
+        styles: { fontSize: 8, cellPadding: 2 },
+        columnStyles: {
+          0: { cellWidth: 15 },
+          1: { cellWidth: 70 },
+          2: { cellWidth: 70 },
+          3: { cellWidth: 15 },
+        },
+        margin: { left: 14 },
+      });
+      
+      yPosition = (doc as any).lastAutoTable.finalY + 10;
+    } else {
+      doc.setFontSize(8);
+      doc.setTextColor(150);
+      doc.text("No Q&A pairs", 14, yPosition);
+      doc.setTextColor(0);
+      yPosition += 10;
+    }
+  });
+  
+  doc.save(filename);
 };
