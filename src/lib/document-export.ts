@@ -208,34 +208,14 @@ export const exportToPDF = (documents: ExportDocument[], filename: string) => {
     
     doc.setFontSize(9);
     doc.setFont(undefined, "normal");
-    const statusText = `Status: ${document.status} | Trained: ${document.trained ? "Yes" : "No"}`;
+    const idText = `ID: ${document.id}`;
     if (isRTL) {
       const pageWidth = doc.internal.pageSize.getWidth();
-      doc.text(statusText, pageWidth - 14, yPosition, { align: "right" });
+      doc.text(idText, pageWidth - 14, yPosition, { align: "right" });
     } else {
-      doc.text(statusText, 14, yPosition);
+      doc.text(idText, 14, yPosition);
     }
     yPosition += 5;
-    
-    const createdText = `Created: ${new Date(document.created_at).toLocaleDateString()}`;
-    if (isRTL) {
-      const pageWidth = doc.internal.pageSize.getWidth();
-      doc.text(createdText, pageWidth - 14, yPosition, { align: "right" });
-    } else {
-      doc.text(createdText, 14, yPosition);
-    }
-    yPosition += 5;
-    
-    if (document.submitter_email) {
-      const submitterText = `Submitter: ${document.submitter_email}`;
-      if (isRTL) {
-        const pageWidth = doc.internal.pageSize.getWidth();
-        doc.text(submitterText, pageWidth - 14, yPosition, { align: "right" });
-      } else {
-        doc.text(submitterText, 14, yPosition);
-      }
-      yPosition += 5;
-    }
     
     if (document.source_links.length > 0) {
       const sourcesText = `Sources: ${document.source_links.join(", ")}`;
@@ -345,42 +325,14 @@ export const exportToWord = async (documents: ExportDocument[], filename: string
     documentParagraphs.push(
       new Paragraph({
         children: [
-          new TextRun({ text: "Status: ", bold: true }),
-          new TextRun(document.status),
-          new TextRun({ text: " | Trained: ", bold: true }),
-          new TextRun(document.trained ? "Yes" : "No"),
+          new TextRun({ text: "ID: ", bold: true }),
+          new TextRun(document.id),
         ],
         spacing: { after: 100 },
         bidirectional: isRTL,
         alignment: isRTL ? AlignmentType.RIGHT : AlignmentType.LEFT,
       })
     );
-    
-    documentParagraphs.push(
-      new Paragraph({
-        children: [
-          new TextRun({ text: "Created: ", bold: true }),
-          new TextRun(new Date(document.created_at).toLocaleDateString()),
-        ],
-        spacing: { after: 100 },
-        bidirectional: isRTL,
-        alignment: isRTL ? AlignmentType.RIGHT : AlignmentType.LEFT,
-      })
-    );
-    
-    if (document.submitter_email) {
-      documentParagraphs.push(
-        new Paragraph({
-          children: [
-            new TextRun({ text: "Submitter: ", bold: true }),
-            new TextRun(document.submitter_email),
-          ],
-          spacing: { after: 100 },
-          bidirectional: isRTL,
-          alignment: isRTL ? AlignmentType.RIGHT : AlignmentType.LEFT,
-        })
-      );
-    }
     
     if (document.source_links.length > 0) {
       documentParagraphs.push(
