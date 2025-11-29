@@ -25,9 +25,10 @@ interface UseDocumentsParams {
   limit: number;
   searchTerm: string;
   trainedOnly: boolean;
+  status?: string;
 }
 
-export const useDocuments = ({ page, limit, searchTerm, trainedOnly }: UseDocumentsParams) => {
+export const useDocuments = ({ page, limit, searchTerm, trainedOnly, status }: UseDocumentsParams) => {
   const [documents, setDocuments] = useState<TrainingDocument[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [documentsLoading, setDocumentsLoading] = useState(true);
@@ -77,6 +78,11 @@ export const useDocuments = ({ page, limit, searchTerm, trainedOnly }: UseDocume
         query = query.eq('trained', true);
       }
 
+      // Apply status filter
+      if (status) {
+        query = query.eq('status', status);
+      }
+
       // Apply pagination and ordering
       const { data, error } = await query
         .order('created_at', { ascending: false })
@@ -119,6 +125,11 @@ export const useDocuments = ({ page, limit, searchTerm, trainedOnly }: UseDocume
         countQuery = countQuery.eq('trained', true);
       }
 
+      // Apply status filter
+      if (status) {
+        countQuery = countQuery.eq('status', status);
+      }
+
       const { count, error } = await countQuery;
 
       if (error) {
@@ -142,7 +153,7 @@ export const useDocuments = ({ page, limit, searchTerm, trainedOnly }: UseDocume
   useEffect(() => {
     fetchDocuments();
     fetchCount();
-  }, [page, limit, searchTerm, trainedOnly]);
+  }, [page, limit, searchTerm, trainedOnly, status]);
 
   const totalPages = Math.ceil(totalCount / limit);
   const loading = documentsLoading || countLoading;

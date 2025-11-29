@@ -12,7 +12,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const DocumentStats = () => {
+interface DocumentStatsProps {
+  onStatusClick?: (status: string | null) => void;
+}
+
+const DocumentStats = ({ onStatusClick }: DocumentStatsProps) => {
   const { stats, loading } = useDocumentStats();
   const { toast } = useToast();
   const [downloadingType, setDownloadingType] = useState<string | null>(null);
@@ -85,7 +89,10 @@ const DocumentStats = () => {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-      <Card>
+      <Card 
+        className="cursor-pointer hover:shadow-lg transition-shadow"
+        onClick={() => onStatusClick?.(null)}
+      >
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Total Documents</CardTitle>
           <FileText className="h-4 w-4 text-muted-foreground" />
@@ -101,6 +108,7 @@ const DocumentStats = () => {
                   disabled={downloadingType === 'all' || stats.total === 0}
                   className="h-8 w-8"
                   title="Download all documents"
+                  onClick={(e) => e.stopPropagation()}
                 >
                   <Download className={`h-4 w-4 ${downloadingType === 'all' ? 'animate-pulse' : ''}`} />
                 </Button>
@@ -124,7 +132,10 @@ const DocumentStats = () => {
         </CardContent>
       </Card>
       
-      <Card>
+      <Card 
+        className="cursor-pointer hover:shadow-lg transition-shadow"
+        onClick={() => onStatusClick?.('approved')}
+      >
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Approved</CardTitle>
           <CheckCircle className="h-4 w-4 text-green-600" />
@@ -140,6 +151,7 @@ const DocumentStats = () => {
                   disabled={downloadingType === 'approved' || stats.approved === 0}
                   className="h-8 w-8"
                   title="Download approved documents"
+                  onClick={(e) => e.stopPropagation()}
                 >
                   <Download className={`h-4 w-4 ${downloadingType === 'approved' ? 'animate-pulse' : ''}`} />
                 </Button>
@@ -163,7 +175,10 @@ const DocumentStats = () => {
         </CardContent>
       </Card>
       
-      <Card>
+      <Card 
+        className="cursor-pointer hover:shadow-lg transition-shadow"
+        onClick={() => onStatusClick?.('pending')}
+      >
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Pending</CardTitle>
           <Clock className="h-4 w-4 text-yellow-600" />
@@ -179,6 +194,7 @@ const DocumentStats = () => {
                   disabled={downloadingType === 'pending' || stats.pending === 0}
                   className="h-8 w-8"
                   title="Download pending documents"
+                  onClick={(e) => e.stopPropagation()}
                 >
                   <Download className={`h-4 w-4 ${downloadingType === 'pending' ? 'animate-pulse' : ''}`} />
                 </Button>
@@ -202,7 +218,10 @@ const DocumentStats = () => {
         </CardContent>
       </Card>
       
-      <Card>
+      <Card 
+        className="cursor-pointer hover:shadow-lg transition-shadow"
+        onClick={() => onStatusClick?.('rejected')}
+      >
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Rejected</CardTitle>
           <XCircle className="h-4 w-4 text-red-600" />
@@ -218,6 +237,7 @@ const DocumentStats = () => {
                   disabled={downloadingType === 'rejected' || stats.rejected === 0}
                   className="h-8 w-8"
                   title="Download rejected documents"
+                  onClick={(e) => e.stopPropagation()}
                 >
                   <Download className={`h-4 w-4 ${downloadingType === 'rejected' ? 'animate-pulse' : ''}`} />
                 </Button>
