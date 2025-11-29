@@ -51,6 +51,9 @@ const Dashboard = () => {
   // Current active tab
   const [activeTab, setActiveTab] = useState("all");
 
+  // Status filter state
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+
   // Fetch documents for "All Documents" tab
   const {
     documents: allDocuments,
@@ -61,7 +64,8 @@ const Dashboard = () => {
     page: allCurrentPage,
     limit: ITEMS_PER_PAGE,
     searchTerm: debouncedAllSearchTerm,
-    trainedOnly: false
+    trainedOnly: false,
+    status: statusFilter || undefined
   });
 
   // Fetch documents for "Trained Only" tab
@@ -74,7 +78,8 @@ const Dashboard = () => {
     page: trainedCurrentPage,
     limit: ITEMS_PER_PAGE,
     searchTerm: debouncedTrainedSearchTerm,
-    trainedOnly: true
+    trainedOnly: true,
+    status: statusFilter || undefined
   });
 
   useEffect(() => {
@@ -129,6 +134,12 @@ const Dashboard = () => {
     refetchTrainedDocuments();
   };
 
+  const handleStatusClick = (status: string | null) => {
+    setStatusFilter(status);
+    setAllCurrentPage(1);
+    setTrainedCurrentPage(1);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-100 flex items-center justify-center">
@@ -154,7 +165,7 @@ const Dashboard = () => {
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         <DashboardHeader />
-        <DocumentStats />
+        <DocumentStats onStatusClick={handleStatusClick} />
 
         <Card className="shadow-xl border-0 bg-white">
           <CardHeader className="p-4 sm:p-6">
